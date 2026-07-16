@@ -8,7 +8,7 @@ import { supabase } from "../lib/supabase";
 import * as ImagePicker from "expo-image-picker";
 
 // ─── Backend URL ──────────────────────────────────────────────────────────────
-const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || "https://pdd-backend-9ghg.onrender.com";
+const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || "https://pdd-smileguard.onrender.com";
 
 // ─── Disease metadata ─────────────────────────────────────────────────────────
 const DISEASE_INFO: Record<string, { description: string; urgency: string; icon: string; tip: string }> = {
@@ -52,15 +52,11 @@ const DISEASE_INFO: Record<string, { description: string; urgency: string; icon:
 
 // ─── Offline fallback (used if backend is unreachable) ───────────────────────
 function simulateAIAnalysis(seed: number) {
-  // Use the image size (seed) to generate pseudo-random results so different images get different scores
-  const pseudoRandom = ((seed * 9301 + 49297) % 233280) / 233280;
+  // Use a fixed score for the offline fallback so mobile and web always show the exact same number when the backend is unreachable.
+  const score = 54; // Yields a 46/100 health score
+  const pseudoRandom = 0.35; // Fixed value to satisfy downstream confidence calculations
 
-  // Generate a score between 30 and 95
-  const score = Math.floor(30 + pseudoRandom * 65);
-
-  let level: "Healthy" | "Minimal" | "Low" | "Medium" | "High" = "Low";
-  if (score >= 70) level = "High";
-  else if (score >= 45) level = "Medium";
+  let level = "Medium" as "Healthy" | "Minimal" | "Low" | "Medium" | "High";
 
   const hasCaries = score > 75;
   const hasGingivitis = score > 50 && seed % 2 === 0;
@@ -393,9 +389,9 @@ async function callPredictAPI(
       } as any);
     }
 
-    // Add a 10-second timeout so the app doesn't hang if the Render backend is sleeping
+    // Add a 60-second timeout so the Render backend has enough time to wake up from sleep
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    const timeoutId = setTimeout(() => controller.abort(), 60000);
 
     const res = await fetch(`${BACKEND_URL}/predict`, {
       method: "POST",
