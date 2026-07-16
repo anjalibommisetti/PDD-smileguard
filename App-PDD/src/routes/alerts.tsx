@@ -48,7 +48,7 @@ const alerts = [
 export default function AlertsScreen() {
   return (
     <PhoneShell>
-      <ScreenHeader title="Alerts" subtitle="Stay on top of your care" />
+      <ScreenHeader title="Alerts" subtitle="Stay on top of your care" showBack={true} />
 
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
         <View style={styles.list}>
