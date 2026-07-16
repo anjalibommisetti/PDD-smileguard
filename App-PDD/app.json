@@ -1,0 +1,41 @@
+{
+  "expo": {
+    "name": "SmileGuard",
+    "slug": "smile-guard",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0D4B42"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "runtimeVersion": {
+        "policy": "appVersion"
+      }
+    },
+    "android": {
+      "package": "com.lakshmi_anjali.smileguard",
+      "runtimeVersion": "1.0.0",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0D4B42"
+      }
+    },
+    "web": {
+      "bundler": "metro",
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "cf5467bc-3c0a-4576-b51a-8da4c38ca2cd"
+      }
+    },
+    "updates": {
+      "url": "https://u.expo.dev/cf5467bc-3c0a-4576-b51a-8da4c38ca2cd"
+    }
+  }
+}
