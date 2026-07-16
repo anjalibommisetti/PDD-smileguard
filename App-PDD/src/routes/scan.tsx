@@ -722,7 +722,7 @@ export default function ScanScreen() {
 
     Animated.timing(progressAnim, {
       toValue: 1,
-      duration: 2800,
+      duration: 1000,
       useNativeDriver: false,
     }).start();
 
@@ -730,12 +730,12 @@ export default function ScanScreen() {
       Animated.sequence([
         Animated.timing(scanLineAnim, {
           toValue: 1,
-          duration: 1200,
+          duration: 600,
           useNativeDriver: false,
         }),
         Animated.timing(scanLineAnim, {
           toValue: 0,
-          duration: 1200,
+          duration: 600,
           useNativeDriver: false,
         }),
       ]),
