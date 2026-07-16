@@ -78,7 +78,16 @@ async def predict(file: UploadFile = File(...)):
         risk_level = "Healthy"
     else:
         top = max(detected_classes, key=lambda x: x["confidence"])
-        base_score = int(top["confidence"] * 100)
+        
+        # Use a stable base score mapped to severity to prevent slight image compression 
+        # differences across devices from causing fluctuating percentages.
+        if top["severity"] == "Severe":
+            base_score = 85
+        elif top["severity"] == "Moderate":
+            base_score = 65
+        else:
+            base_score = 55
+            
         extra = (len(detected_classes) - 1) * 5
         risk_score = min(base_score + extra, 100)
 
