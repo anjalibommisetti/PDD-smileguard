@@ -19,18 +19,8 @@ def build_model(input_shape=(224, 224, 3), num_classes=2):
     Returns:
         A compiled tf.keras Model.
     """
-    # Using data augmentation layers so the model is robust to differences 
-    # in image quality, compression, and orientation from different devices.
-    data_augmentation = tf.keras.Sequential([
-        layers.RandomFlip("horizontal_and_vertical", input_shape=input_shape),
-        layers.RandomRotation(0.2),
-        layers.RandomZoom(0.2),
-        layers.RandomContrast(0.2),
-    ])
-
     model = models.Sequential([
-        data_augmentation,
-        layers.Rescaling(1.0 / 255),
+        layers.Rescaling(1.0 / 255, input_shape=input_shape),
         layers.Conv2D(32, (3, 3), activation='relu'),
         layers.MaxPooling2D(),
         layers.Conv2D(64, (3, 3), activation='relu'),
