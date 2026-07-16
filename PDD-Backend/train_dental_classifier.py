@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 
 import numpy as np
-import tensorflow as tf
+import tensorflow as tf  # type: ignore
 layers = tf.keras.layers
 models = tf.keras.models
 image_dataset_from_directory = tf.keras.utils.image_dataset_from_directory

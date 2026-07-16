@@ -173,8 +173,8 @@ async function runOfflineAnalysis(uri: string, seed: number): Promise<ReturnType
 
         for (let i = 0; i < data.length; i += 4) {
           const r = data[i];
-          const g = data[i+1];
-          const b = data[i+2];
+          const g = data[i + 1];
+          const b = data[i + 2];
 
           if (r > 130 && g < 100 && b < 100 && (r - g > 50)) {
             redCount++;
@@ -372,8 +372,18 @@ async function callPredictAPI(
 ): Promise<ReturnType<typeof simulateAIAnalysis> | null> {
   try {
     const form = new FormData();
-    if (Platform.OS === "web" && typeof imageFile !== "string" && imageFile) {
-      form.append("file", imageFile);
+    if (Platform.OS === "web") {
+      if (typeof imageFile === "string" && imageFile.startsWith("data:")) {
+        const res = await fetch(imageFile);
+        const blob = await res.blob();
+        form.append("file", blob, "upload.jpg");
+      } else if (imageFile && typeof imageFile !== "string") {
+        form.append("file", imageFile, "upload.jpg");
+      } else {
+        const res = await fetch(imageUri);
+        const blob = await res.blob();
+        form.append("file", blob, "upload.jpg");
+      }
     } else {
       // React Native FormData file upload format
       form.append("file", {
@@ -382,7 +392,19 @@ async function callPredictAPI(
         type: "image/jpeg",
       } as any);
     }
-    const res = await fetch(`${BACKEND_URL}/predict`, { method: "POST", body: form });
+
+    // Add a 10-second timeout so the app doesn't hang if the Render backend is sleeping
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+    const res = await fetch(`${BACKEND_URL}/predict`, {
+      method: "POST",
+      body: form,
+      signal: controller.signal
+    });
+
+    clearTimeout(timeoutId);
+
     if (!res.ok) return null;
     const data = await res.json();
     if (data.status !== "success") return null;
@@ -921,12 +943,12 @@ export default function ScanScreen() {
         onBack={
           (result || imageUri)
             ? () => {
-                setImageUri(null);
-                setResult(null);
-                setAutoSaved(false);
-                setImageWarning(null);
-                setOfflineMode(false);
-              }
+              setImageUri(null);
+              setResult(null);
+              setAutoSaved(false);
+              setImageWarning(null);
+              setOfflineMode(false);
+            }
             : undefined
         }
         back={!(result || imageUri) ? "Dashboard" : undefined}
@@ -939,24 +961,24 @@ export default function ScanScreen() {
       >
         {/* Centered container for desktop readability */}
         <View style={s.centeredWrap}>
-        {/* Upload Area */}
-        {!result && !showCamera && (
-          <View style={s.uploadCard}>
-            <View
-              {...({ onDragOver: handleDragOver, onDragLeave: handleDragLeave, onDrop: handleDrop } as any)}
-              style={{
-                flexDirection: "column",
-                alignItems: "center",
-                paddingTop: 44,
-                paddingHorizontal: 24,
-                borderWidth: 2,
-                borderStyle: "dashed",
-                borderColor: isDragging ? "#157A6E" : "#CBD5E1",
-                borderRadius: 20,
-                backgroundColor: isDragging
-                  ? "rgba(21, 122, 110, 0.06)"
-                  : "rgba(248, 250, 252, 0.6)",
-              }}>
+          {/* Upload Area */}
+          {!result && !showCamera && (
+            <View style={s.uploadCard}>
+              <View
+                {...({ onDragOver: handleDragOver, onDragLeave: handleDragLeave, onDrop: handleDrop } as any)}
+                style={{
+                  flexDirection: "column",
+                  alignItems: "center",
+                  paddingTop: 44,
+                  paddingHorizontal: 24,
+                  borderWidth: 2,
+                  borderStyle: "dashed",
+                  borderColor: isDragging ? "#157A6E" : "#CBD5E1",
+                  borderRadius: 20,
+                  backgroundColor: isDragging
+                    ? "rgba(21, 122, 110, 0.06)"
+                    : "rgba(248, 250, 252, 0.6)",
+                }}>
 
                 <View style={s.uploadIcon}>
                   <Feather name="camera" size={30} color="#157A6E" />
@@ -978,358 +1000,358 @@ export default function ScanScreen() {
                   </TouchableOpacity>
                 </View>
               </View>
-          </View>
-        )}
+            </View>
+          )}
 
 
-        {imageUri && !result && !showCamera && (
+          {imageUri && !result && !showCamera && (
             <View style={s.uploadCard}>
               <Image source={{ uri: imageUri }} style={{ width: "100%", height: 300, borderRadius: 16, marginBottom: 16 }} />
               <TouchableOpacity style={s.cancelCamBtn} onPress={() => { setImageUri(null); setResult(null); setImageFile(null); }}>
                 <Text style={s.cancelCamText}>Remove Image</Text>
               </TouchableOpacity>
             </View>
-        )}
+          )}
 
-        {/* Web Camera View */}
-        {showCamera && Platform.OS === "web" && (
-          <View style={s.uploadCard}>
-            <video
-              ref={videoRef as any}
-              autoPlay
-              playsInline
-              style={{ width: "100%", height: 300, borderRadius: 16, objectFit: "cover", backgroundColor: "#000" }}
-            />
-            <View style={{ flexDirection: "row", gap: 12, marginTop: 16, justifyContent: "center" }}>
-              <TouchableOpacity style={s.openCamBtn} onPress={capturePhoto}>
-                <Feather name="camera" size={16} color="#0D4B42" />
-                <Text style={s.openCamText}>Take Photo</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={s.cancelCamBtn} onPress={stopCamera}>
-                <Text style={s.cancelCamText}>Cancel</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
-
-        {/* Tips */}
-        {!imageUri && (
-          <View style={s.tipsCard}>
-            <Text style={s.tipsTitle}>📸 Photo Tips for Best Results</Text>
-            {[
-              "Good lighting — natural light works best",
-              "Open mouth wide, show all teeth clearly",
-              "Keep camera steady for a sharp image",
-              "Include both upper and lower teeth",
-            ].map((tip, i) => (
-              <View key={i} style={s.tipRow}>
-                <View style={s.tipDot} />
-                <Text style={s.tipText}>{tip}</Text>
+          {/* Web Camera View */}
+          {showCamera && Platform.OS === "web" && (
+            <View style={s.uploadCard}>
+              <video
+                ref={videoRef as any}
+                autoPlay
+                playsInline
+                style={{ width: "100%", height: 300, borderRadius: 16, objectFit: "cover", backgroundColor: "#000" }}
+              />
+              <View style={{ flexDirection: "row", gap: 12, marginTop: 16, justifyContent: "center" }}>
+                <TouchableOpacity style={s.openCamBtn} onPress={capturePhoto}>
+                  <Feather name="camera" size={16} color="#0D4B42" />
+                  <Text style={s.openCamText}>Take Photo</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={s.cancelCamBtn} onPress={stopCamera}>
+                  <Text style={s.cancelCamText}>Cancel</Text>
+                </TouchableOpacity>
               </View>
-            ))}
-          </View>
-        )}
-
-        {/* Analyze Button */}
-        {imageUri && !result && (
-          <TouchableOpacity
-            style={[s.analyzeBtn, analyzing && { opacity: 0.7 }]}
-            onPress={runAnalysis}
-            disabled={analyzing}
-            activeOpacity={0.8}
-          >
-            {analyzing ? (
-              <>
-                <ActivityIndicator color="#0D4B42" size="small" />
-                <Text style={s.analyzeBtnText}>Analyzing…</Text>
-              </>
-            ) : (
-              <>
-                <Feather name="cpu" size={18} color="#0D4B42" />
-                <Text style={s.analyzeBtnText}>Run Analysis</Text>
-              </>
-            )}
-          </TouchableOpacity>
-        )}
-
-        {/* Progress Bar */}
-        {analyzing && (
-          <View style={s.progressCard}>
-            <View style={s.progressHeader}>
-              <ActivityIndicator color="#157A6E" size="small" />
-              <Text style={s.progressLabel}>Processing dental image…</Text>
             </View>
-            <View style={s.progressBg}>
-              <Animated.View style={[s.progressFill, { width: progressWidth as any }]} />
-            </View>
-            <View style={s.progressSteps}>
-              {["Preprocessing", "Inference", "Analysis"].map((step, i) => (
-                <View key={i} style={s.progressStep}>
-                  <View style={[s.progressStepDot, i < 2 && { backgroundColor: "#157A6E" }]} />
-                  <Text style={[s.progressStepText, i < 2 && { color: "#157A6E" }]}>{step}</Text>
+          )}
+
+          {/* Tips */}
+          {!imageUri && (
+            <View style={s.tipsCard}>
+              <Text style={s.tipsTitle}>📸 Photo Tips for Best Results</Text>
+              {[
+                "Good lighting — natural light works best",
+                "Open mouth wide, show all teeth clearly",
+                "Keep camera steady for a sharp image",
+                "Include both upper and lower teeth",
+              ].map((tip, i) => (
+                <View key={i} style={s.tipRow}>
+                  <View style={s.tipDot} />
+                  <Text style={s.tipText}>{tip}</Text>
                 </View>
               ))}
             </View>
-          </View>
-        )}
+          )}
 
-        {/* ═══════════════════ RESULTS SECTION ═══════════════════ */}
-        {result && (
-          <Animated.View style={{ opacity: fadeAnim as any }}>
+          {/* Analyze Button */}
+          {imageUri && !result && (
+            <TouchableOpacity
+              style={[s.analyzeBtn, analyzing && { opacity: 0.7 }]}
+              onPress={runAnalysis}
+              disabled={analyzing}
+              activeOpacity={0.8}
+            >
+              {analyzing ? (
+                <>
+                  <ActivityIndicator color="#0D4B42" size="small" />
+                  <Text style={s.analyzeBtnText}>Analyzing…</Text>
+                </>
+              ) : (
+                <>
+                  <Feather name="cpu" size={18} color="#0D4B42" />
+                  <Text style={s.analyzeBtnText}>Run Analysis</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          )}
 
-
-            {/* Image Quality Warning */}
-            {imageWarning && (
-              <View style={s.warningBanner}>
-                <Feather name="alert-triangle" size={18} color="#B45309" />
-                <View style={{ flex: 1 }}>
-                  <Text style={s.warningTitle}>⚠️ Image Quality Alert</Text>
-                  <Text style={s.warningText}>
-                    {imageWarning} For more accurate results, please retake with better lighting and focus.
-                  </Text>
-                </View>
+          {/* Progress Bar */}
+          {analyzing && (
+            <View style={s.progressCard}>
+              <View style={s.progressHeader}>
+                <ActivityIndicator color="#157A6E" size="small" />
+                <Text style={s.progressLabel}>Processing dental image…</Text>
               </View>
-            )}
-
-
-
-            {/* ── Score Card (modern medical style) ── */}
-            <View style={s.scoreCardOuter}>
-              <View style={[s.scoreCard, { borderLeftColor: riskColor }]}>
-                <View style={s.scoreTop}>
-                  <View>
-                    <Text style={s.scoreLabel}>ORAL HEALTH SCORE</Text>
-                    <View style={s.scoreRow}>
-                      <Text style={[s.scoreNum, { color: riskColor }]}>{healthScore}</Text>
-                      <Text style={[s.scoreUnit, { color: riskColor }]}>/100</Text>
-                    </View>
-                  </View>
-                  <View style={s.scoreRightCol}>
-                    <View style={[s.riskBadge, { backgroundColor: riskColor + "18", borderColor: riskColor + "40" }]}>
-                      <View style={[s.riskDot, { backgroundColor: riskColor }]} />
-                      <MaterialCommunityIcons name="tooth" size={16} color={riskColor} style={{ marginRight: 4 }} />
-                      <Text style={[s.riskBadgeText, { color: riskColor }]}>{`🦷 ${result.level} Risk`}</Text>
-                    </View>
-                    <Text style={s.confText}>Confidence: {result.confidence}%</Text>
-                  </View>
-                </View>
-
-                {/* Health Score Progress */}
-                <View style={s.scoreBarBg}>
-                  <View style={[s.scoreBarFill, { width: `${healthScore}%` as any, backgroundColor: riskColor }]} />
-                </View>
-
-                <View style={s.scoreMeta}>
-                  <View style={s.scoreMetaItem}>
-                    <Feather name="activity" size={13} color="#64748B" />
-                    <Text style={s.scoreMetaText}>Primary: {result.predictedClass}</Text>
-                  </View>
-                  <View style={s.scoreMetaItem}>
-                    <Feather name="clock" size={13} color="#64748B" />
-                    <Text style={s.scoreMetaText}>{new Date().toLocaleDateString()}</Text>
-                  </View>
-                </View>
-
-                <Text style={s.scoreDesc}>
-                  {result.level === "Low" || result.level === "Healthy" || result.level === "Minimal"
-                    ? "✓ Your teeth look healthy! Maintain your current oral hygiene routine."
-                    : result.level === "Medium"
-                      ? "⚠ Moderate risk detected. Some areas need attention or professional cleaning."
-                      : "🚨 High risk detected. Please consult a dentist as soon as possible."}
-                </Text>
+              <View style={s.progressBg}>
+                <Animated.View style={[s.progressFill, { width: progressWidth as any }]} />
               </View>
-            </View>
-
-            {/* Findings — 6 categories from Kaggle Oral Diseases dataset */}
-               <View style={s.findingsCard}>
-              <Text style={s.findingsTitle}>🔍 Scan Findings</Text>
-
-              <View style={s.findingsList}>
-                {result.findings.map((f, i) => (
-                  <View
-                    key={i}
-                    style={[
-                      s.findingItem,
-                      f.detected && { borderLeftWidth: 3, borderLeftColor: f.color },
-                    ]}
-                  >
-                    <Feather
-                      name={f.detected ? "alert-circle" : "check-circle"}
-                      size={16}
-                      color={f.detected ? f.color : "#10B981"}
-                    />
-                    <View style={{ flex: 1 }}>
-                      <View
-                        style={{
-                          flexDirection: "row",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                        }}
-                      >
-                        <Text style={s.findingLabel}>{f.label}</Text>
-                        <View
-                          style={[
-                            s.severityBadge,
-                            {
-                              backgroundColor: f.detected ? f.color + "20" : "#DCFCE7",
-                              borderColor: f.detected ? f.color + "40" : "#A7F3D0",
-                            },
-                          ]}
-                        >
-                          <Text
-                            style={[
-                              s.severityText,
-                              {
-                                color: f.detected ? f.color : "#10B981",
-                              },
-                            ]}
-                          >
-                            {f.detected ? f.severity : "None"}
-                          </Text>
-                        </View>
-                      </View>
-                      {f.detected && (
-                        <View
-                          style={{
-                            flexDirection: "row",
-                            alignItems: "center",
-                            gap: 4,
-                            marginTop: 4,
-                          }}
-                        >
-                          <Text style={s.findingDescText}>{f.description}</Text>
-                        </View>
-                      )}
-                      {f.detected && (
-                        <View
-                          style={[
-                            s.urgencyBadge,
-                            {
-                              backgroundColor:
-                                f.urgency === "Immediate"
-                                  ? "#FEF2F2"
-                                  : f.urgency === "Soon"
-                                    ? "#FFFBEB"
-                                    : "#F0FDF4",
-                            },
-                          ]}
-                        >
-                          <Text
-                            style={[
-                              s.urgencyText,
-                              {
-                                color:
-                                  f.urgency === "Immediate"
-                                    ? "#EF4444"
-                                    : f.urgency === "Soon"
-                                      ? "#F59E0B"
-                                      : "#10B981",
-                              },
-                            ]}
-                          >
-                            ⏱ {f.urgency}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
+              <View style={s.progressSteps}>
+                {["Preprocessing", "Inference", "Analysis"].map((step, i) => (
+                  <View key={i} style={s.progressStep}>
+                    <View style={[s.progressStepDot, i < 2 && { backgroundColor: "#157A6E" }]} />
+                    <Text style={[s.progressStepText, i < 2 && { color: "#157A6E" }]}>{step}</Text>
                   </View>
                 ))}
               </View>
             </View>
+          )}
 
-            {/* ── Recommendations (Modern Cards) ── */}
-            <View style={s.recsCard}>
-              <View style={s.recsHeader}>
-                <View style={s.recsIconWrap}>
-                  <Feather name="heart" size={14} color="#157A6E" />
+          {/* ═══════════════════ RESULTS SECTION ═══════════════════ */}
+          {result && (
+            <Animated.View style={{ opacity: fadeAnim as any }}>
+
+
+              {/* Image Quality Warning */}
+              {imageWarning && (
+                <View style={s.warningBanner}>
+                  <Feather name="alert-triangle" size={18} color="#B45309" />
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.warningTitle}>⚠️ Image Quality Alert</Text>
+                    <Text style={s.warningText}>
+                      {imageWarning} For more accurate results, please retake with better lighting and focus.
+                    </Text>
+                  </View>
                 </View>
-                <Text style={s.recsTitle}>Personalized Recommendations</Text>
-              </View>
-              <View style={s.recsList}>
-                {result.suggestions.map((sug, i) => {
-                  const isDentist = sug.toLowerCase().includes("dentist") || sug.toLowerCase().includes("visit") || sug.toLowerCase().includes("appointment") || sug.toLowerCase().includes("consultation");
-                  const isUrgent = sug.toLowerCase().includes("immediate") || sug.toLowerCase().includes("urgent");
-                  const recColor = isUrgent ? "#EF4444" : isDentist ? "#157A6E" : "#10B981";
-                  const recBg = isUrgent ? "#FEF2F2" : isDentist ? "#ECFDF5" : "#F0FDF4";
-                  const recIcon = isUrgent ? "alert-circle" : isDentist ? "calendar" : "check-circle";
+              )}
 
-                  return (
-                    <TouchableOpacity
-                      key={i}
-                      style={[s.recItem, { borderLeftColor: recColor }]}
-                      onPress={() => isDentist && navigation.navigate("Dentists")}
-                      activeOpacity={isDentist ? 0.7 : 1}
-                    >
-                      <View style={[s.recIconWrap, { backgroundColor: recBg }]}>
-                        <Feather name={recIcon} size={15} color={recColor} />
+
+
+              {/* ── Score Card (modern medical style) ── */}
+              <View style={s.scoreCardOuter}>
+                <View style={[s.scoreCard, { borderLeftColor: riskColor }]}>
+                  <View style={s.scoreTop}>
+                    <View>
+                      <Text style={s.scoreLabel}>ORAL HEALTH SCORE</Text>
+                      <View style={s.scoreRow}>
+                        <Text style={[s.scoreNum, { color: riskColor }]}>{healthScore}</Text>
+                        <Text style={[s.scoreUnit, { color: riskColor }]}>/100</Text>
                       </View>
+                    </View>
+                    <View style={s.scoreRightCol}>
+                      <View style={[s.riskBadge, { backgroundColor: riskColor + "18", borderColor: riskColor + "40" }]}>
+                        <View style={[s.riskDot, { backgroundColor: riskColor }]} />
+                        <MaterialCommunityIcons name="tooth" size={16} color={riskColor} style={{ marginRight: 4 }} />
+                        <Text style={[s.riskBadgeText, { color: riskColor }]}>{`🦷 ${result.level} Risk`}</Text>
+                      </View>
+                      <Text style={s.confText}>Confidence: {result.confidence}%</Text>
+                    </View>
+                  </View>
+
+                  {/* Health Score Progress */}
+                  <View style={s.scoreBarBg}>
+                    <View style={[s.scoreBarFill, { width: `${healthScore}%` as any, backgroundColor: riskColor }]} />
+                  </View>
+
+                  <View style={s.scoreMeta}>
+                    <View style={s.scoreMetaItem}>
+                      <Feather name="activity" size={13} color="#64748B" />
+                      <Text style={s.scoreMetaText}>Primary: {result.predictedClass}</Text>
+                    </View>
+                    <View style={s.scoreMetaItem}>
+                      <Feather name="clock" size={13} color="#64748B" />
+                      <Text style={s.scoreMetaText}>{new Date().toLocaleDateString()}</Text>
+                    </View>
+                  </View>
+
+                  <Text style={s.scoreDesc}>
+                    {result.level === "Low" || result.level === "Healthy" || result.level === "Minimal"
+                      ? "✓ Your teeth look healthy! Maintain your current oral hygiene routine."
+                      : result.level === "Medium"
+                        ? "⚠ Moderate risk detected. Some areas need attention or professional cleaning."
+                        : "🚨 High risk detected. Please consult a dentist as soon as possible."}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Findings — 6 categories from Kaggle Oral Diseases dataset */}
+              <View style={s.findingsCard}>
+                <Text style={s.findingsTitle}>🔍 Scan Findings</Text>
+
+                <View style={s.findingsList}>
+                  {result.findings.map((f, i) => (
+                    <View
+                      key={i}
+                      style={[
+                        s.findingItem,
+                        f.detected && { borderLeftWidth: 3, borderLeftColor: f.color },
+                      ]}
+                    >
+                      <Feather
+                        name={f.detected ? "alert-circle" : "check-circle"}
+                        size={16}
+                        color={f.detected ? f.color : "#10B981"}
+                      />
                       <View style={{ flex: 1 }}>
-                        <Text style={s.recText}>{sug}</Text>
-                        {isDentist && (
-                          <Text style={s.recAction}>Tap to find nearby dentists →</Text>
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <Text style={s.findingLabel}>{f.label}</Text>
+                          <View
+                            style={[
+                              s.severityBadge,
+                              {
+                                backgroundColor: f.detected ? f.color + "20" : "#DCFCE7",
+                                borderColor: f.detected ? f.color + "40" : "#A7F3D0",
+                              },
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                s.severityText,
+                                {
+                                  color: f.detected ? f.color : "#10B981",
+                                },
+                              ]}
+                            >
+                              {f.detected ? f.severity : "None"}
+                            </Text>
+                          </View>
+                        </View>
+                        {f.detected && (
+                          <View
+                            style={{
+                              flexDirection: "row",
+                              alignItems: "center",
+                              gap: 4,
+                              marginTop: 4,
+                            }}
+                          >
+                            <Text style={s.findingDescText}>{f.description}</Text>
+                          </View>
+                        )}
+                        {f.detected && (
+                          <View
+                            style={[
+                              s.urgencyBadge,
+                              {
+                                backgroundColor:
+                                  f.urgency === "Immediate"
+                                    ? "#FEF2F2"
+                                    : f.urgency === "Soon"
+                                      ? "#FFFBEB"
+                                      : "#F0FDF4",
+                              },
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                s.urgencyText,
+                                {
+                                  color:
+                                    f.urgency === "Immediate"
+                                      ? "#EF4444"
+                                      : f.urgency === "Soon"
+                                        ? "#F59E0B"
+                                        : "#10B981",
+                                },
+                              ]}
+                            >
+                              ⏱ {f.urgency}
+                            </Text>
+                          </View>
                         )}
                       </View>
-                      {isDentist && <Feather name="chevron-right" size={16} color="#CBD5E1" />}
-                    </TouchableOpacity>
-                  );
-                })}
+                    </View>
+                  ))}
+                </View>
               </View>
-            </View>
 
-            {/* Auto-saved indicator */}
-            {autoSaved && (
-              <View style={s.autoSavedBanner}>
-                <Feather name="check-circle" size={14} color="#10B981" />
-                <Text style={s.autoSavedText}>Automatically saved to your scan history</Text>
+              {/* ── Recommendations (Modern Cards) ── */}
+              <View style={s.recsCard}>
+                <View style={s.recsHeader}>
+                  <View style={s.recsIconWrap}>
+                    <Feather name="heart" size={14} color="#157A6E" />
+                  </View>
+                  <Text style={s.recsTitle}>Personalized Recommendations</Text>
+                </View>
+                <View style={s.recsList}>
+                  {result.suggestions.map((sug, i) => {
+                    const isDentist = sug.toLowerCase().includes("dentist") || sug.toLowerCase().includes("visit") || sug.toLowerCase().includes("appointment") || sug.toLowerCase().includes("consultation");
+                    const isUrgent = sug.toLowerCase().includes("immediate") || sug.toLowerCase().includes("urgent");
+                    const recColor = isUrgent ? "#EF4444" : isDentist ? "#157A6E" : "#10B981";
+                    const recBg = isUrgent ? "#FEF2F2" : isDentist ? "#ECFDF5" : "#F0FDF4";
+                    const recIcon = isUrgent ? "alert-circle" : isDentist ? "calendar" : "check-circle";
+
+                    return (
+                      <TouchableOpacity
+                        key={i}
+                        style={[s.recItem, { borderLeftColor: recColor }]}
+                        onPress={() => isDentist && navigation.navigate("Dentists")}
+                        activeOpacity={isDentist ? 0.7 : 1}
+                      >
+                        <View style={[s.recIconWrap, { backgroundColor: recBg }]}>
+                          <Feather name={recIcon} size={15} color={recColor} />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={s.recText}>{sug}</Text>
+                          {isDentist && (
+                            <Text style={s.recAction}>Tap to find nearby dentists →</Text>
+                          )}
+                        </View>
+                        {isDentist && <Feather name="chevron-right" size={16} color="#CBD5E1" />}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
               </View>
-            )}
 
-            {/* ── Disclaimer ── */}
-            <View style={s.disclaimer}>
-              <Feather name="info" size={14} color="#94A3B8" />
-              <Text style={s.disclaimerText}>
-                This analysis is for informational purposes only and does not constitute a medical diagnosis. 
-                Results are generated by a software tool and should not replace professional evaluation. 
-                Always consult a licensed dental professional for clinical evaluation and treatment.
-              </Text>
-            </View>
+              {/* Auto-saved indicator */}
+              {autoSaved && (
+                <View style={s.autoSavedBanner}>
+                  <Feather name="check-circle" size={14} color="#10B981" />
+                  <Text style={s.autoSavedText}>Automatically saved to your scan history</Text>
+                </View>
+              )}
 
-            {/* ── Action Buttons (Re-Scan + Download Report) ── */}
-            <View style={s.actions}>
+              {/* ── Disclaimer ── */}
+              <View style={s.disclaimer}>
+                <Feather name="info" size={14} color="#94A3B8" />
+                <Text style={s.disclaimerText}>
+                  This analysis is for informational purposes only and does not constitute a medical diagnosis.
+                  Results are generated by a software tool and should not replace professional evaluation.
+                  Always consult a licensed dental professional for clinical evaluation and treatment.
+                </Text>
+              </View>
+
+              {/* ── Action Buttons (Re-Scan + Download Report) ── */}
+              <View style={s.actions}>
+                <TouchableOpacity
+                  style={s.rescanBtn}
+                  onPress={() => {
+                    setImageUri(null);
+                    setResult(null);
+                    setAutoSaved(false);
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Feather name="refresh-cw" size={16} color="#157A6E" />
+                  <Text style={s.rescanText}>Re-Scan</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={s.downloadBtn}
+                  onPress={handleDownloadReport}
+                  activeOpacity={0.8}
+                >
+                  <Feather name="download" size={16} color="#FFF" />
+                  <Text style={s.downloadText}>Download Report</Text>
+                </TouchableOpacity>
+              </View>
+
               <TouchableOpacity
-                style={s.rescanBtn}
-                onPress={() => {
-                  setImageUri(null);
-                  setResult(null);
-                  setAutoSaved(false);
-                }}
+                style={s.dentistBtn}
+                onPress={() => navigation.navigate("Dentists")}
                 activeOpacity={0.8}
               >
-                <Feather name="refresh-cw" size={16} color="#157A6E" />
-                <Text style={s.rescanText}>Re-Scan</Text>
+                <Feather name="calendar" size={16} color="#157A6E" />
+                <Text style={s.dentistBtnText}>Book a Dentist Appointment</Text>
+                <Feather name="arrow-right" size={14} color="#157A6E" />
               </TouchableOpacity>
-
-              <TouchableOpacity
-                style={s.downloadBtn}
-                onPress={handleDownloadReport}
-                activeOpacity={0.8}
-              >
-                <Feather name="download" size={16} color="#FFF" />
-                <Text style={s.downloadText}>Download Report</Text>
-              </TouchableOpacity>
-            </View>
-
-            <TouchableOpacity
-              style={s.dentistBtn}
-              onPress={() => navigation.navigate("Dentists")}
-              activeOpacity={0.8}
-            >
-              <Feather name="calendar" size={16} color="#157A6E" />
-              <Text style={s.dentistBtnText}>Book a Dentist Appointment</Text>
-              <Feather name="arrow-right" size={14} color="#157A6E" />
-            </TouchableOpacity>
-          </Animated.View>
-        )}
+            </Animated.View>
+          )}
         </View>{/* end centeredWrap */}
       </ScrollView>
     </PhoneShell>
