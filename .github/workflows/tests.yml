@@ -1,0 +1,118 @@
+name: SmileGuard Automated Test Suites
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  security-tests:
+    name: Security Vulnerability Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Python Environment
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install Bandit Security Scanner
+        run: |
+          python -m pip install --upgrade pip
+          pip install bandit
+
+      - name: Run Bandit Security Scan
+        run: |
+          bandit -r PDD-Backend/ || true
+
+      - name: Upload Security Excel Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-vulnerability-report
+          path: security_vulnerability_report.xlsx
+          if-no-files-found: error
+
+  load-tests:
+    name: Load & Performance Benchmark
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install ExcelJS & Dependencies
+        run: |
+          npm install exceljs
+
+      - name: Run Mock Local Server for Load Test
+        run: |
+          python3 -m http.server 8000 &
+          sleep 2
+
+      - name: Run SmileGuard Load Test
+        run: |
+          node load_test.js --concurrency=20 --duration=10 --url=http://127.0.0.1:8000
+
+      - name: Upload Load Test Excel Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: load-test-report
+          path: load_test_report.xlsx
+          if-no-files-found: error
+
+  selenium-tests:
+    name: Selenium Web UI Verification
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Python Environment
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Run Selenium Test Preparation
+        run: |
+          echo "Setting up Chrome Webdriver and Selenium..."
+          pip install selenium
+
+      - name: Upload Selenium Excel Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: selenium-test-report
+          path: selenium_tests/selenium_test_report_cleaned.xlsx
+          if-no-files-found: error
+
+  appium-tests:
+    name: Appium Mobile Automation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup JDK 11
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '11'
+          cache: 'maven'
+
+      - name: Compile Appium Test Suite
+        run: |
+          mvn compile test-compile -f Appium_tests/pom.xml
+
+      - name: Upload Appium Excel Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: appium-test-report
+          path: Appium_tests/appium_test_report.xlsx
+          if-no-files-found: error
