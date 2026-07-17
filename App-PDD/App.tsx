@@ -152,7 +152,7 @@ export default function App() {
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showSplash, setShowSplash] = useState(true);
-  const [initialRoute, setInitialRoute] = useState<string>("Landing");
+  const [initialRoute, setInitialRoute] = useState<string>("Login");
   const [isRecovery, setIsRecovery] = useState(false);
   useEffect(() => {
     // NO auto-dismiss — user must click "Get Started" button

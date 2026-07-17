@@ -200,7 +200,7 @@ export default function PatientPortal() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    navigation.reset({ index: 0, routes: [{ name: "Landing" }] });
+    navigation.reset({ index: 0, routes: [{ name: "Login" }] });
   };
 
   const navItems = [
