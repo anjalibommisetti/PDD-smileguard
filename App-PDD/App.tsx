@@ -28,7 +28,7 @@ if (Platform.OS === "web") {
   }
 }
 import { NavigationContainer } from "@react-navigation/native";
-import { createStackNavigator } from "@react-navigation/stack";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "./src/lib/supabase";
 import { useEffect, useState, useRef } from "react";
@@ -49,7 +49,7 @@ import ScanScreen from "./src/routes/scan";
 import AnalyticsDashboard from "./src/routes/analytics";
 import ForgotPasswordScreen from "./src/routes/forgot-password";
 
-const Stack = createStackNavigator();
+const Stack = createNativeStackNavigator();
 
 // ─── Splash Screen ────────────────────────────────────────────────────────────
 function SplashScreen({ onDismiss }: { onDismiss: () => void }) {
@@ -161,7 +161,7 @@ export default function App() {
   // Check for OTA Updates on App Start
   useEffect(() => {
     async function checkForUpdates() {
-      if (Platform.OS === 'web') return;
+      if (Platform.OS === 'web' || !Updates.isEnabled) return;
       try {
         const update = await Updates.checkForUpdateAsync();
         if (update.isAvailable) {
@@ -316,8 +316,7 @@ export default function App() {
         <Stack.Navigator
           screenOptions={{
             headerShown: false,
-            cardStyle: { backgroundColor: "#F8FBFB", flex: 1 },
-            detachPreviousScreen: Platform.OS !== "web",
+            contentStyle: { backgroundColor: "#F8FBFB" },
           }}
           initialRouteName={initialRoute}
         >
