@@ -59,7 +59,7 @@ def build_cache():
                                 total_scanned += 1
                         except Exception as e:
                             # Skip corrupt/unsupported images
-                            pass
+                            print(f"Skipping corrupt image {img_path}: {e}")
             print(f"Finished category '{item}': processed {category_count} images.")
 
     if not hashes:

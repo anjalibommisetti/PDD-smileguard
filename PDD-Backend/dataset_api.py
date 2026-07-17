@@ -22,4 +22,4 @@ if __name__ == "__main__":
     # Render provides the port via the $PORT environment variable.
     import os
     port = int(os.getenv("PORT", "8001"))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=port)  # nosec B104
