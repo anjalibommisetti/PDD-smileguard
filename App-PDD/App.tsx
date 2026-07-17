@@ -309,8 +309,7 @@ export default function App() {
     <SafeAreaProvider
       style={{
         flex: 1,
-        width: (Platform.OS === "web" ? "100vw" : "100%") as any,
-        height: (Platform.OS === "web" ? "100vh" : "100%") as any,
+        ...(Platform.OS === "web" ? { width: "100vw", height: "100vh" } : {}),
       }}
     >
       <NavigationContainer ref={navigationRef}>
