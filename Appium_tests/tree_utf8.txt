@@ -1,0 +1,99 @@
+﻿[INFO] Scanning for projects...
+[INFO] 
+[INFO] --------------------< com.smileguard:appium-tests >---------------------
+[INFO] Building appium-tests 1.0-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- dependency:3.6.1:tree (default-cli) @ appium-tests ---
+[INFO] com.smileguard:appium-tests:jar:1.0-SNAPSHOT
+[INFO] +- io.appium:java-client:jar:8.3.0:compile
+[INFO] |  +- org.seleniumhq.selenium:selenium-api:jar:4.46.0:compile
+[INFO] |  |  \- org.jspecify:jspecify:jar:1.0.0:compile
+[INFO] |  +- org.seleniumhq.selenium:selenium-remote-driver:jar:4.46.0:compile
+[INFO] |  |  +- com.google.auto.service:auto-service-annotations:jar:1.1.1:compile
+[INFO] |  |  +- com.google.guava:guava:jar:33.6.0-jre:compile
+[INFO] |  |  |  +- com.google.guava:failureaccess:jar:1.0.3:compile
+[INFO] |  |  |  +- com.google.guava:listenablefuture:jar:9999.0-empty-to-avoid-conflict-with-guava:compile
+[INFO] |  |  |  +- com.google.errorprone:error_prone_annotations:jar:2.47.0:compile
+[INFO] |  |  |  \- com.google.j2objc:j2objc-annotations:jar:3.1:compile
+[INFO] |  |  +- io.opentelemetry:opentelemetry-api:jar:1.64.0:compile
+[INFO] |  |  +- io.opentelemetry:opentelemetry-context:jar:1.64.0:compile
+[INFO] |  |  |  \- io.opentelemetry:opentelemetry-common:jar:1.64.0:compile
+[INFO] |  |  +- io.opentelemetry:opentelemetry-exporter-logging:jar:1.64.0:compile
+[INFO] |  |  +- io.opentelemetry:opentelemetry-sdk-common:jar:1.64.0:compile
+[INFO] |  |  +- io.opentelemetry:opentelemetry-sdk-extension-autoconfigure-spi:jar:1.64.0:compile
+[INFO] |  |  +- io.opentelemetry:opentelemetry-sdk-extension-autoconfigure:jar:1.64.0:compile
+[INFO] |  |  +- io.opentelemetry:opentelemetry-sdk-trace:jar:1.64.0:compile
+[INFO] |  |  +- io.opentelemetry:opentelemetry-sdk:jar:1.64.0:compile
+[INFO] |  |  |  +- io.opentelemetry:opentelemetry-sdk-metrics:jar:1.64.0:compile
+[INFO] |  |  |  \- io.opentelemetry:opentelemetry-sdk-logs:jar:1.64.0:compile
+[INFO] |  |  +- net.bytebuddy:byte-buddy:jar:1.18.11:compile
+[INFO] |  |  +- org.seleniumhq.selenium:selenium-http:jar:4.46.0:compile
+[INFO] |  |  +- org.seleniumhq.selenium:selenium-json:jar:4.46.0:compile
+[INFO] |  |  +- org.seleniumhq.selenium:selenium-manager:jar:4.46.0:compile
+[INFO] |  |  \- org.seleniumhq.selenium:selenium-os:jar:4.46.0:compile
+[INFO] |  +- org.seleniumhq.selenium:selenium-support:jar:4.46.0:compile
+[INFO] |  +- com.google.code.gson:gson:jar:2.10:compile
+[INFO] |  +- cglib:cglib:jar:3.3.0:runtime
+[INFO] |  |  \- org.ow2.asm:asm:jar:7.1:runtime
+[INFO] |  +- commons-validator:commons-validator:jar:1.7:runtime
+[INFO] |  |  +- commons-beanutils:commons-beanutils:jar:1.9.4:runtime
+[INFO] |  |  +- commons-digester:commons-digester:jar:2.1:runtime
+[INFO] |  |  +- commons-logging:commons-logging:jar:1.2:runtime
+[INFO] |  |  \- commons-collections:commons-collections:jar:3.2.2:runtime
+[INFO] |  +- org.apache.commons:commons-lang3:jar:3.12.0:compile
+[INFO] |  +- commons-io:commons-io:jar:2.11.0:compile
+[INFO] |  \- org.slf4j:slf4j-api:jar:2.0.5:compile
+[INFO] +- org.seleniumhq.selenium:selenium-java:jar:4.8.3:compile
+[INFO] |  +- org.seleniumhq.selenium:selenium-chrome-driver:jar:4.8.3:compile
+[INFO] |  |  +- com.google.auto.service:auto-service:jar:1.0.1:compile
+[INFO] |  |  |  \- com.google.auto:auto-common:jar:1.2:compile
+[INFO] |  |  \- org.seleniumhq.selenium:selenium-chromium-driver:jar:4.8.3:compile
+[INFO] |  +- org.seleniumhq.selenium:selenium-devtools-v109:jar:4.8.3:compile
+[INFO] |  +- org.seleniumhq.selenium:selenium-devtools-v110:jar:4.8.3:compile
+[INFO] |  +- org.seleniumhq.selenium:selenium-devtools-v111:jar:4.8.3:compile
+[INFO] |  +- org.seleniumhq.selenium:selenium-devtools-v85:jar:4.8.3:compile
+[INFO] |  +- org.seleniumhq.selenium:selenium-edge-driver:jar:4.8.3:compile
+[INFO] |  +- org.seleniumhq.selenium:selenium-firefox-driver:jar:4.8.3:compile
+[INFO] |  +- org.seleniumhq.selenium:selenium-ie-driver:jar:4.8.3:compile
+[INFO] |  \- org.seleniumhq.selenium:selenium-safari-driver:jar:4.8.3:compile
+[INFO] +- org.testng:testng:jar:7.8.0:compile
+[INFO] |  +- com.beust:jcommander:jar:1.82:compile
+[INFO] |  \- org.webjars:jquery:jar:3.6.1:runtime
+[INFO] +- io.github.bonigarcia:webdrivermanager:jar:5.5.3:compile
+[INFO] |  +- com.github.docker-java:docker-java:jar:3.3.3:compile
+[INFO] |  |  +- com.github.docker-java:docker-java-core:jar:3.3.3:compile
+[INFO] |  |  |  +- com.github.docker-java:docker-java-api:jar:3.3.3:compile
+[INFO] |  |  |  |  \- com.fasterxml.jackson.core:jackson-annotations:jar:2.10.3:compile
+[INFO] |  |  |  +- com.fasterxml.jackson.core:jackson-databind:jar:2.10.3:compile
+[INFO] |  |  |  |  \- com.fasterxml.jackson.core:jackson-core:jar:2.10.3:compile
+[INFO] |  |  |  \- org.bouncycastle:bcpkix-jdk18on:jar:1.75:compile
+[INFO] |  |  |     +- org.bouncycastle:bcprov-jdk18on:jar:1.75:compile
+[INFO] |  |  |     \- org.bouncycastle:bcutil-jdk18on:jar:1.75:compile
+[INFO] |  |  \- org.slf4j:jcl-over-slf4j:jar:1.7.30:compile
+[INFO] |  +- com.github.docker-java:docker-java-transport-httpclient5:jar:3.3.3:compile
+[INFO] |  |  +- com.github.docker-java:docker-java-transport:jar:3.3.3:compile
+[INFO] |  |  \- net.java.dev.jna:jna:jar:5.12.1:compile
+[INFO] |  +- org.brotli:dec:jar:0.1.2:compile
+[INFO] |  \- org.apache.httpcomponents.client5:httpclient5:jar:5.2.1:compile
+[INFO] |     +- org.apache.httpcomponents.core5:httpcore5:jar:5.2:compile
+[INFO] |     \- org.apache.httpcomponents.core5:httpcore5-h2:jar:5.2:compile
+[INFO] +- org.apache.poi:poi:jar:5.2.3:compile
+[INFO] |  +- commons-codec:commons-codec:jar:1.15:compile
+[INFO] |  +- org.apache.commons:commons-collections4:jar:4.4:compile
+[INFO] |  +- org.apache.commons:commons-math3:jar:3.6.1:compile
+[INFO] |  +- com.zaxxer:SparseBitSet:jar:1.2:compile
+[INFO] |  \- org.apache.logging.log4j:log4j-api:jar:2.18.0:compile
+[INFO] +- org.apache.poi:poi-ooxml:jar:5.2.3:compile
+[INFO] |  +- org.apache.poi:poi-ooxml-lite:jar:5.2.3:compile
+[INFO] |  +- org.apache.xmlbeans:xmlbeans:jar:5.1.1:compile
+[INFO] |  +- org.apache.commons:commons-compress:jar:1.21:compile
+[INFO] |  \- com.github.virtuald:curvesapi:jar:1.07:compile
+[INFO] \- org.slf4j:slf4j-simple:jar:2.0.7:compile
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  4.913 s
+[INFO] Finished at: 2026-07-17T08:57:49+05:30
+[INFO] ------------------------------------------------------------------------
