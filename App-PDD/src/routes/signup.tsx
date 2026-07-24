@@ -48,7 +48,16 @@ export default function SignupScreen() {
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(trimmedEmail)) {
-      setErrorMessage("Please enter a valid email address (e.g. user@saveetha.com or user@gmail.com)");
+      const msg = "Please enter a valid email address (e.g. user@gmail.com)";
+      setErrorMessage(msg);
+      Alert.alert("Invalid Email Format", msg);
+      return;
+    }
+
+    if (!trimmedEmail.endsWith("@gmail.com")) {
+      const msg = "Registration is allowed only with @gmail.com email addresses. Please enter a valid Gmail address.";
+      setErrorMessage(msg);
+      Alert.alert("Invalid Email Domain", msg);
       return;
     }
 
@@ -157,7 +166,7 @@ export default function SignupScreen() {
 
           <TextInput
             style={styles.input}
-            placeholder="Email (e.g. name@saveetha.com or name@gmail.com)"
+            placeholder="Email (e.g. example@gmail.com)"
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
