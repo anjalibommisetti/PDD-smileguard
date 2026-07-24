@@ -491,15 +491,6 @@ export default function ProfileScreen() {
           />
           <View style={[styles.divider, { backgroundColor: borderColor }]} />
 
-          <MenuRow
-            icon="refresh-cw"
-            label={t("checkUpdates", language)}
-            onPress={handleManualCheckUpdate}
-            textColor={textColor}
-            iconColor={isDarkMode ? "#38BDF8" : "#0F172A"}
-          />
-          <View style={[styles.divider, { backgroundColor: borderColor }]} />
-
           <TouchableOpacity style={styles.menuRow} onPress={handleLogout}>
             <View style={styles.menuRowLeft}>
               <Feather name="log-out" size={16} color="#EF4444" />
