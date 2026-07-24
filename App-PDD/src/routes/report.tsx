@@ -17,6 +17,8 @@ import { ScreenHeader } from "../components/ScreenHeader";
 import { Feather } from "@expo/vector-icons";
 import { supabase } from "../lib/supabase";
 import { useEffect, useState } from "react";
+import * as Print from "expo-print";
+import * as Sharing from "expo-sharing";
 
 import { useRoute } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -293,6 +295,160 @@ export default function ReportScreen() {
     }
   };
 
+  const handleDownloadPDF = async () => {
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>SmileGuard Health Report</title>
+        <style>
+          body {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            padding: 36px;
+            color: #0F172A;
+            background: #FFFFFF;
+          }
+          .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 3px solid #0D9488;
+            padding-bottom: 16px;
+            margin-bottom: 24px;
+          }
+          .brand {
+            font-size: 24px;
+            font-weight: bold;
+            color: #0D9488;
+          }
+          .date {
+            font-size: 14px;
+            color: #64748B;
+          }
+          .badge {
+            display: inline-block;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 14px;
+            text-transform: uppercase;
+          }
+          .badge-High { background: #FEE2E2; color: #EF4444; }
+          .badge-Medium { background: #FEF3C7; color: #F59E0B; }
+          .badge-Low { background: #D1FAE5; color: #10B981; }
+          
+          .section {
+            background: #F8FAFC;
+            border: 1px solid #E2E8F0;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+          }
+          .section-title {
+            font-size: 12px;
+            font-weight: bold;
+            color: #0D9488;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 14px;
+          }
+          .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 16px;
+          }
+          .info-label { font-size: 12px; color: #64748B; margin-bottom: 4px; }
+          .info-value { font-size: 15px; font-weight: 600; color: #0F172A; }
+          
+          .score-container {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+          }
+          .score-number { font-size: 44px; font-weight: 800; color: #0F172A; }
+          
+          .rec-item {
+            padding: 12px 0;
+            border-bottom: 1px solid #E2E8F0;
+          }
+          .rec-item:last-child { border-bottom: none; }
+          .rec-title { font-weight: 600; color: #0F172A; font-size: 14px; }
+          .rec-text { color: #64748B; font-size: 13px; margin-top: 3px; }
+          
+          .footer {
+            margin-top: 40px;
+            padding-top: 16px;
+            border-top: 1px solid #E2E8F0;
+            font-size: 11px;
+            color: #94A3B8;
+            text-align: center;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div>
+            <div class="brand">SmileGuard Oral Health Clinical Report</div>
+            <div style="font-size: 12px; color: #64748B; margin-top: 4px;">Automated Risk Diagnostic Assessment</div>
+          </div>
+          <div class="date">Date: ${assessmentDate}</div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Patient Details</div>
+          <div class="grid">
+            <div><div class="info-label">Full Name</div><div class="info-value">${patientName}</div></div>
+            <div><div class="info-label">Patient ID</div><div class="info-value">${user?.id?.slice(0, 8) || "N/A"}</div></div>
+            <div><div class="info-label">Age</div><div class="info-value">${patientAge} yrs</div></div>
+            <div><div class="info-label">Gender</div><div class="info-value">${patientGender}</div></div>
+            <div><div class="info-label">Area</div><div class="info-value">${patientArea}</div></div>
+            <div><div class="info-label">Tobacco Use</div><div class="info-value">${tobaccoUse}</div></div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Diagnostic Results</div>
+          <div class="score-container">
+            <div class="score-number">${riskScore}%</div>
+            <div>
+              <span class="badge badge-${riskLevel}">${riskLevel} Risk</span>
+              <div style="font-size: 13px; color: #64748B; margin-top: 6px;">Evaluated based on clinical assessment and risk indicators</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Clinical Care Plan & Recommendations</div>
+          ${recommendations.map((r) => `
+            <div class="rec-item">
+              <div class="rec-title">${r.title}</div>
+              <div class="rec-text">${r.text}</div>
+            </div>
+          `).join("")}
+        </div>
+
+        <div class="footer">
+          This report was generated automatically by the SmileGuard Oral Health Diagnostic Platform.
+          For medical diagnoses, please consult a licensed dental professional.
+        </div>
+      </body>
+      </html>
+    `;
+
+    try {
+      if (Platform.OS === "web") {
+        await Print.printAsync({ html: htmlContent });
+      } else {
+        const { uri } = await Print.printToFileAsync({ html: htmlContent });
+        await Sharing.shareAsync(uri, { mimeType: "application/pdf", dialogTitle: "Download PDF Report" });
+      }
+    } catch (error) {
+      console.error("PDF generation error:", error);
+      Alert.alert("PDF Generation Failed", "Unable to export report as PDF.");
+    }
+  };
+
   return (
     <PhoneShell showNav={false}>
       <ScreenHeader title="Full Report" back="Results" />
@@ -526,13 +682,7 @@ export default function ReportScreen() {
           <TouchableOpacity
             style={styles.btnPrimary}
             activeOpacity={0.8}
-            onPress={() => {
-              if (typeof window !== "undefined" && window.print) {
-                window.print();
-              } else {
-                Alert.alert("Downloaded", "Report downloaded to your device.");
-              }
-            }}
+            onPress={handleDownloadPDF}
           >
             <Feather name="download" size={16} color="#0D4B42" />
             <Text style={styles.btnPrimaryText}>Download PDF</Text>
