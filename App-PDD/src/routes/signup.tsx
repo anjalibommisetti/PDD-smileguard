@@ -8,6 +8,20 @@ import { supabase } from "../lib/supabase";
 import { Feather } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+function getPasswordStrength(pass: string) {
+  if (!pass) return { score: 0, label: "", color: "#CBD5E1" };
+  let score = 0;
+  if (pass.length >= 6) score += 1;
+  if (pass.length >= 8) score += 1;
+  if (/[A-Z]/.test(pass) || /[0-9]/.test(pass)) score += 1;
+  if (/[^A-Za-z0-9]/.test(pass)) score += 1;
+
+  if (score <= 1) return { score: 1, label: "Weak 🔴", color: "#EF4444", percent: "25%" };
+  if (score === 2) return { score: 2, label: "Fair 🟠", color: "#F59E0B", percent: "50%" };
+  if (score === 3) return { score: 3, label: "Strong 🟢", color: "#10B981", percent: "75%" };
+  return { score: 4, label: "Very Strong 🔥", color: "#059669", percent: "100%" };
+}
+
 export default function SignupScreen() {
   console.log("SignupScreen rendered");
   const navigation = useNavigation<any>();
@@ -21,12 +35,20 @@ export default function SignupScreen() {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
-  // Role specific state removed
+  const passStrength = getPasswordStrength(password);
 
   const handleSignup = async () => {
     setErrorMessage("");
-    if (!email || !password || !fullName) {
-      setErrorMessage("Please fill in all fields");
+    const trimmedEmail = email.trim().toLowerCase();
+
+    if (!trimmedEmail || !password || !fullName) {
+      setErrorMessage("Please fill in all required fields (Name, Email, Password)");
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(trimmedEmail)) {
+      setErrorMessage("Please enter a valid email address (e.g. user@saveetha.com or user@gmail.com)");
       return;
     }
 
@@ -40,12 +62,10 @@ export default function SignupScreen() {
       return;
     }
 
-    // Removed role-specific validation
-
     setLoading(true);
-    console.log("Attempting signup for:", email.trim());
+    console.log("Attempting signup for:", trimmedEmail);
     const { data, error } = await supabase.auth.signUp({
-      email: email.trim(),
+      email: trimmedEmail,
       password,
       options: {
         data: {
@@ -84,7 +104,7 @@ export default function SignupScreen() {
   return (
     <PhoneShell showNav={false}>
       <View style={{ flex: 1 }}>
-        <View style={styles.container}>
+        <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
           <Text style={styles.title}>Create Account</Text>
 
           {errorMessage ? (
@@ -137,11 +157,15 @@ export default function SignupScreen() {
 
           <TextInput
             style={styles.input}
-            placeholder="Email"
+            placeholder="Email (e.g. name@saveetha.com or name@gmail.com)"
             keyboardType="email-address"
             autoCapitalize="none"
+            autoCorrect={false}
             value={email}
-            onChangeText={setEmail}
+            onChangeText={(val) => {
+              setEmail(val);
+              setErrorMessage("");
+            }}
           />
 
           <View style={styles.passwordContainer}>
@@ -156,6 +180,18 @@ export default function SignupScreen() {
               <Feather name={showPassword ? "eye" : "eye-off"} size={20} color="#64748B" />
             </TouchableOpacity>
           </View>
+
+          {/* Password Strength Meter */}
+          {password.length > 0 && (
+            <View style={styles.strengthWrap}>
+              <View style={styles.strengthBg}>
+                <View style={[styles.strengthFill, { width: passStrength.percent as any, backgroundColor: passStrength.color }]} />
+              </View>
+              <Text style={[styles.strengthText, { color: passStrength.color }]}>
+                Strength: {passStrength.label}
+              </Text>
+            </View>
+          )}
 
           <TextInput
             style={styles.input}
@@ -181,7 +217,7 @@ export default function SignupScreen() {
           >
             <Text style={styles.link}>Already have an account? Login</Text>
           </TouchableOpacity>
-        </View>
+        </ScrollView>
       </View>
     </PhoneShell>
   );
@@ -189,7 +225,7 @@ export default function SignupScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flexGrow: 1,
     padding: 20,
     justifyContent: "center",
     gap: 16,
@@ -200,7 +236,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: "bold",
-    marginBottom: 20,
+    marginBottom: 10,
     textAlign: "center",
   },
   input: {
@@ -224,6 +260,25 @@ const styles = StyleSheet.create({
   },
   eyeIcon: {
     padding: 12,
+  },
+  strengthWrap: {
+    marginTop: -8,
+    gap: 4,
+  },
+  strengthBg: {
+    height: 6,
+    backgroundColor: "#E2E8F0",
+    borderRadius: 3,
+    overflow: "hidden",
+  },
+  strengthFill: {
+    height: "100%",
+    borderRadius: 3,
+  },
+  strengthText: {
+    fontSize: 12,
+    fontWeight: "600",
+    textAlign: "right",
   },
   button: {
     backgroundColor: "#86F1D4",
