@@ -62,7 +62,9 @@ export default function SignupScreen() {
       console.log("Signup successful:", data);
       Keyboard?.dismiss?.();
 
-      // Removed AsyncStorage role save
+      if (fullName) {
+        await AsyncStorage.setItem("user_full_name", fullName);
+      }
 
       Alert.alert("Success", "Registration successful! You can now log in to access your portal.");
       navigation.navigate("Login");

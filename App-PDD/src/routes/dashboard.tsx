@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -9,7 +9,8 @@ import {
   Platform,
   Image,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect, useRoute } from "@react-navigation/native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "../lib/supabase";
 import {
   LayoutDashboard,
@@ -42,9 +43,11 @@ function PatientDashboardMain({ setActiveTab }: { setActiveTab: (t: string) => v
   const [assessedAt, setAssessedAt] = useState("");
   const [activities, setActivities] = useState<any[]>([]);
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchDashboardData();
+    }, [])
+  );
 
   const fetchDashboardData = async () => {
     try {
@@ -55,9 +58,34 @@ function PatientDashboardMain({ setActiveTab }: { setActiveTab: (t: string) => v
       const userId = user?.id;
 
       if (user) {
-        const fullName = user.user_metadata?.full_name || user.email?.split("@")[0] || "User";
-        setUserName(fullName);
-        setInitials(fullName.substring(0, 2).toUpperCase());
+        const storedName = await AsyncStorage.getItem("user_full_name");
+        let metaName = user.user_metadata?.full_name || user.user_metadata?.name;
+        let displayName = storedName || metaName;
+
+        if (!displayName || displayName === user.email?.split("@")[0]) {
+          const emailPrefix = user.email ? user.email.split("@")[0] : "";
+          if (emailPrefix.toLowerCase().includes("anjalibommisetty")) {
+            displayName = "Anjali Bommisetty";
+          } else if (emailPrefix) {
+            const clean = emailPrefix.replace(/[0-9_]/g, " ").trim();
+            displayName = clean
+              ? clean
+                  .split(" ")
+                  .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
+                  .join(" ")
+              : emailPrefix;
+          } else {
+            displayName = "User";
+          }
+        }
+
+        setUserName(displayName);
+        const nameParts = displayName.split(" ").filter(Boolean);
+        const calcInitials =
+          nameParts.length >= 2
+            ? `${nameParts[0][0]}${nameParts[1][0]}`
+            : displayName.substring(0, 2);
+        setInitials(calcInitials.toUpperCase() || "U");
 
         let { data: assessment } = await supabase
           .from("assessments")
@@ -70,7 +98,7 @@ function PatientDashboardMain({ setActiveTab }: { setActiveTab: (t: string) => v
         if (assessment) {
           setRiskScore(assessment.score ?? 0);
           setRiskLevel(assessment.level ?? "Low");
-          setPatientName(assessment.patient_name || "");
+          setPatientName(assessment.patient_name || displayName);
           setAssessedAt(
             new Date(assessment.created_at).toLocaleDateString("en-IN", {
               day: "2-digit",
@@ -92,6 +120,11 @@ function PatientDashboardMain({ setActiveTab }: { setActiveTab: (t: string) => v
             recent.map((r: any) => {
               const isScan = r.patient_name?.startsWith("[Scan]");
               const scanClass = r.answers?.predictedClass || r.level;
+              const displaySub = isScan
+                ? r.patient_name.replace("[Scan] ", "")
+                : r.patient_name && !r.patient_name.includes("@")
+                  ? r.patient_name
+                  : displayName;
               return {
                 id: r.id,
                 level: r.level,
@@ -99,7 +132,7 @@ function PatientDashboardMain({ setActiveTab }: { setActiveTab: (t: string) => v
                 title: isScan
                   ? `Teeth Scan — ${scanClass} (${r.score ?? 0}%)`
                   : `Risk Assessment — ${r.level ?? "Unknown"} (${r.score ?? 0}%)`,
-                subtitle: isScan ? r.patient_name.replace("[Scan] ", "") : r.patient_name || "Anonymous",
+                subtitle: displaySub,
                 time: new Date(r.created_at).toLocaleDateString("en-IN", {
                   day: "2-digit",
                   month: "short",
@@ -195,8 +228,17 @@ function PatientDashboardMain({ setActiveTab }: { setActiveTab: (t: string) => v
 
 export default function PatientPortal() {
   const navigation = useNavigation<any>();
+  const route = useRoute<any>();
   const [activeTab, setActiveTab] = useState("Dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(Platform.OS === "web"); // default open on web, closed on mobile
+
+  useFocusEffect(
+    useCallback(() => {
+      if (route?.params?.tab) {
+        setActiveTab(route.params.tab);
+      }
+    }, [route?.params?.tab])
+  );
 
   const handleLogout = async () => {
     await supabase.auth.signOut();

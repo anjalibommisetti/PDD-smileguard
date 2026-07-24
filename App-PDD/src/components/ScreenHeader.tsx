@@ -31,7 +31,7 @@ export const ScreenHeader = ({
             if (onBack) {
               onBack();
             } else if (back) {
-              navigation.navigate(back);
+              navigation.navigate(back, { tab: back });
             } else {
               navigation.goBack();
             }

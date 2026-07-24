@@ -167,6 +167,9 @@ export default function ProfileScreen() {
       }
       const { error } = await supabase.auth.updateUser(updatePayload);
       if (error) throw error;
+      if (editName) {
+        await AsyncStorage.setItem("user_full_name", editName);
+      }
       Alert.alert("Success", "Profile updated successfully!");
       setIsEditing(false);
       fetchUser();
