@@ -233,14 +233,6 @@ export default function ResultsScreen() {
             <Feather name="file-text" size={16} color="#0F172A" />
             <Text style={styles.btnSecondaryText}>Full Report</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.btnPrimary}
-            activeOpacity={0.8}
-            onPress={() => navigation.navigate("Dentists")}
-          >
-            <Feather name="calendar" size={16} color="#0D4B42" />
-            <Text style={styles.btnPrimaryText}>Book Visit</Text>
-          </TouchableOpacity>
         </View>
       </ScrollView>
     </PhoneShell>

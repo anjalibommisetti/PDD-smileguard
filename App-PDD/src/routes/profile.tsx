@@ -44,105 +44,48 @@ export default function ProfileScreen() {
   const [savingProfile, setSavingProfile] = useState(false);
 
 
-  const [streakCount, setStreakCount] = useState<number>(5);
-  const [checkedInToday, setCheckedInToday] = useState<boolean>(false);
-  const [weeklyHistory, setWeeklyHistory] = useState<boolean[]>([true, true, true, true, true, false, false]);
+  const [weeklyStreak, setWeeklyStreak] = useState<number>(1);
+  const [daysInCurrentWeek, setDaysInCurrentWeek] = useState<number>(1);
   const [streakEnabled, setStreakEnabled] = useState<boolean>(true);
 
   useFocusEffect(
     useCallback(() => {
       fetchUser();
-      loadStreak();
     }, []),
   );
 
-  const loadStreak = async () => {
+  const calculateWeeklyStreak = async (sessionUser?: any) => {
     try {
-      const todayStr = new Date().toISOString().split("T")[0];
-      const savedCount = await AsyncStorage.getItem("@smileguard_streak_count");
-      const savedDate = await AsyncStorage.getItem("@smileguard_last_checkin_date");
-      const savedHistory = await AsyncStorage.getItem("@smileguard_weekly_history");
       const savedEnabled = await AsyncStorage.getItem("@smileguard_streak_enabled");
-
       if (savedEnabled !== null) {
         setStreakEnabled(savedEnabled === "true");
       }
-      if (savedCount !== null) {
-        setStreakCount(parseInt(savedCount, 10));
+
+      let signupIso = sessionUser?.created_at;
+      if (!signupIso) {
+        signupIso = await AsyncStorage.getItem("@smileguard_signup_date");
       }
-      if (savedHistory !== null) {
-        setWeeklyHistory(JSON.parse(savedHistory));
+      if (!signupIso) {
+        signupIso = new Date().toISOString();
+        await AsyncStorage.setItem("@smileguard_signup_date", signupIso);
+      } else if (sessionUser?.created_at) {
+        await AsyncStorage.setItem("@smileguard_signup_date", sessionUser.created_at);
       }
-      if (savedDate === todayStr) {
-        setCheckedInToday(true);
-      } else {
-        setCheckedInToday(false);
-      }
+
+      const signupDate = new Date(signupIso);
+      const now = new Date();
+      const diffMs = Math.max(0, now.getTime() - signupDate.getTime());
+      const totalDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+      // Calculate weeks elapsed since signup date (Week 1, Week 2, ...)
+      const weeks = Math.floor(totalDays / 7) + 1;
+      const dayOfWeekIndex = (totalDays % 7) + 1; // 1 to 7 days into current week
+
+      setWeeklyStreak(weeks);
+      setDaysInCurrentWeek(dayOfWeekIndex);
     } catch (e) {
-      console.log("Error loading streak:", e);
+      console.log("Error calculating streak:", e);
     }
-  };
-
-  const handleMaintainStreak = async () => {
-    try {
-      const todayStr = new Date().toISOString().split("T")[0];
-      const todayDayIdx = (new Date().getDay() + 6) % 7; // Mon=0..Sun=6
-
-      if (checkedInToday) {
-        // Toggle off
-        const newCount = Math.max(0, streakCount - 1);
-        const newHistory = [...weeklyHistory];
-        newHistory[todayDayIdx] = false;
-
-        setStreakCount(newCount);
-        setCheckedInToday(false);
-        setWeeklyHistory(newHistory);
-
-        await AsyncStorage.removeItem("@smileguard_last_checkin_date");
-        await AsyncStorage.setItem("@smileguard_streak_count", newCount.toString());
-        await AsyncStorage.setItem("@smileguard_weekly_history", JSON.stringify(newHistory));
-      } else {
-        // Toggle on / maintain streak
-        const newCount = streakCount + 1;
-        const newHistory = [...weeklyHistory];
-        newHistory[todayDayIdx] = true;
-
-        setStreakCount(newCount);
-        setCheckedInToday(true);
-        setWeeklyHistory(newHistory);
-
-        await AsyncStorage.setItem("@smileguard_last_checkin_date", todayStr);
-        await AsyncStorage.setItem("@smileguard_streak_count", newCount.toString());
-        await AsyncStorage.setItem("@smileguard_weekly_history", JSON.stringify(newHistory));
-
-        Alert.alert("🔥 Streak Maintained!", `Great job! You've logged your daily oral care. Streak: ${newCount} days!`);
-      }
-    } catch (e) {
-      Alert.alert("Error", "Could not update streak.");
-    }
-  };
-
-  const handleResetStreak = () => {
-    Alert.alert(
-      "Reset Streak",
-      "Are you sure you want to reset your daily streak back to 0?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Reset",
-          style: "destructive",
-          onPress: async () => {
-            setStreakCount(0);
-            setCheckedInToday(false);
-            const emptyHistory = [false, false, false, false, false, false, false];
-            setWeeklyHistory(emptyHistory);
-            await AsyncStorage.setItem("@smileguard_streak_count", "0");
-            await AsyncStorage.removeItem("@smileguard_last_checkin_date");
-            await AsyncStorage.setItem("@smileguard_weekly_history", JSON.stringify(emptyHistory));
-          },
-        },
-      ]
-    );
   };
 
   const handleToggleRemoveStreakCard = async () => {
@@ -159,6 +102,7 @@ export default function ProfileScreen() {
       } = await supabase.auth.getSession();
       
       setUser(session?.user ?? null);
+      calculateWeeklyStreak(session?.user);
       if (session?.user) {
         setEditName(session.user.user_metadata?.full_name || "");
         setEditPhone(session.user.user_metadata?.phone || "");
@@ -331,27 +275,26 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* Streak Maintainer */}
+        {/* Weekly Streak Maintainer */}
         {streakEnabled && (
           <View style={styles.streakCard}>
             <View style={styles.streakTop}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
                 <Feather name="zap" size={28} color="#7C3AED" />
                 <View>
-                  <Text style={styles.streakDays}>{streakCount} {streakCount === 1 ? "day" : "days"}</Text>
-                  <Text style={styles.streakLabel}>Oral care streak</Text>
+                  <Text style={styles.streakDays}>
+                    {weeklyStreak} {weeklyStreak === 1 ? "week" : "weeks"}
+                  </Text>
+                  <Text style={styles.streakLabel}>Weekly oral care streak</Text>
                 </View>
               </View>
-              <TouchableOpacity onPress={handleResetStreak} style={styles.streakResetBtn}>
-                <Feather name="rotate-ccw" size={14} color="#7C3AED" />
-                <Text style={styles.streakResetText}>Reset</Text>
-              </TouchableOpacity>
             </View>
 
-            {/* Streak pills grid */}
+            {/* Streak pills grid for current week */}
             <View style={styles.streakGrid}>
-              {weeklyHistory.map((active, i) => {
+              {Array.from({ length: 7 }).map((_, i) => {
                 const dayNames = ["M", "T", "W", "T", "F", "S", "S"];
+                const active = i < daysInCurrentWeek;
                 return (
                   <View key={i} style={{ flex: 1, alignItems: "center", gap: 4 }}>
                     <View
@@ -366,17 +309,13 @@ export default function ProfileScreen() {
               })}
             </View>
 
-            {/* Interactive Check-in Button */}
-            <TouchableOpacity
-              style={[styles.maintainBtn, checkedInToday && styles.maintainBtnActive]}
-              onPress={handleMaintainStreak}
-              activeOpacity={0.8}
-            >
-              <Feather name={checkedInToday ? "check-circle" : "plus-circle"} size={18} color={checkedInToday ? "#7C3AED" : "#FFF"} />
-              <Text style={[styles.maintainBtnText, checkedInToday && styles.maintainBtnTextActive]}>
-                {checkedInToday ? "Streak Maintained Today! 🔥" : "Log Today's Oral Care 🪥"}
+            {/* Status indicator */}
+            <View style={[styles.maintainBtn, styles.maintainBtnActive]}>
+              <Feather name="check-circle" size={18} color="#7C3AED" />
+              <Text style={styles.maintainBtnTextActive}>
+                Streak Active · Week {weeklyStreak} (Day {daysInCurrentWeek}/7) 🔥
               </Text>
-            </TouchableOpacity>
+            </View>
           </View>
         )}
 
@@ -435,7 +374,7 @@ export default function ProfileScreen() {
 
           <MenuRow
             icon={streakEnabled ? "eye-off" : "zap"}
-            label={streakEnabled ? "Hide Daily Streak Card" : "Show Daily Streak Card"}
+            label={streakEnabled ? "Hide Weekly Streak Card" : "Show Weekly Streak Card"}
             onPress={handleToggleRemoveStreakCard}
           />
           <View style={styles.divider} />
