@@ -16,6 +16,7 @@ export default function SignupScreen() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [fullName, setFullName] = useState("");
+  const [age, setAge] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -48,6 +49,7 @@ export default function SignupScreen() {
       options: {
         data: {
           full_name: fullName,
+          age: age,
         },
       },
     });
@@ -64,6 +66,9 @@ export default function SignupScreen() {
 
       if (fullName) {
         await AsyncStorage.setItem("user_full_name", fullName);
+      }
+      if (age) {
+        await AsyncStorage.setItem("user_age", age);
       }
 
       Alert.alert("Success", "Registration successful! You can now log in to access your portal.");
@@ -92,6 +97,14 @@ export default function SignupScreen() {
               setFullName(val);
               setErrorMessage("");
             }}
+          />
+
+          <TextInput
+            style={styles.input}
+            placeholder="Age (Years)"
+            keyboardType="numeric"
+            value={age}
+            onChangeText={setAge}
           />
 
           <TextInput

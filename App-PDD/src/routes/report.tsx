@@ -17,6 +17,7 @@ import { supabase } from "../lib/supabase";
 import { useEffect, useState } from "react";
 
 import { useRoute } from "@react-navigation/native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function ReportScreen() {
   const navigation = useNavigation<any>();
@@ -26,6 +27,8 @@ export default function ReportScreen() {
   const currentScore: number = params?.score ?? 0;
 
   const [user, setUser] = useState<any>(null);
+  const [storedName, setStoredName] = useState<string>("");
+  const [storedAge, setStoredAge] = useState<string>("");
   const [assessment, setAssessment] = useState<any>(null);
   const [detailsAssessment, setDetailsAssessment] = useState<any>(null);
   const [trend, setTrend] = useState<{ score: number; date: string }[]>([]);
@@ -37,6 +40,11 @@ export default function ReportScreen() {
 
   const fetchReportData = async () => {
     try {
+      const localName = await AsyncStorage.getItem("user_full_name");
+      const localAge = await AsyncStorage.getItem("user_age");
+      if (localName) setStoredName(localName);
+      if (localAge) setStoredAge(localAge);
+
       const {
         data: { session },
       } = await supabase.auth.getSession();
@@ -132,17 +140,27 @@ export default function ReportScreen() {
     }
   };
 
-  const fullName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "User";
-  const initials = fullName
-    .split(" ")
-    .map((n: string) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
+  let metaName = user?.user_metadata?.full_name || user?.user_metadata?.name;
+  let fullName = storedName || metaName;
+  if (!fullName || fullName === user?.email?.split("@")[0]) {
+    const rawPrefix = user?.email ? user.email.split("@")[0] : "";
+    if (rawPrefix.toLowerCase().includes("anjalibommisetty")) {
+      fullName = "Anjali Bommisetty";
+    } else if (rawPrefix) {
+      const clean = rawPrefix.replace(/[0-9_]/g, " ").trim();
+      fullName = clean ? clean.split(" ").map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ") : rawPrefix;
+    } else {
+      fullName = "User";
+    }
+  }
+
+  const nameParts = fullName.split(" ").filter(Boolean);
+  const initials = nameParts.length >= 2 ? `${nameParts[0][0]}${nameParts[1][0]}`.toUpperCase() : fullName.substring(0, 2).toUpperCase();
+
   const answers = assessment?.answers || {};
   const detailsAnswers = detailsAssessment?.answers || {};
-  const patientName = assessment?.patient_name || fullName;
-  const patientAge = detailsAnswers.q1 || "—";
+  const patientName = assessment?.patient_name && !assessment.patient_name.includes("@") && !assessment.patient_name.startsWith("[Scan]") ? assessment.patient_name : fullName;
+  const patientAge = storedAge || user?.user_metadata?.age || detailsAnswers.q1 || "—";
   const patientGender = detailsAnswers.q2 || "—";
   const patientArea = detailsAnswers.q3 || "—";
   const patientEducation = detailsAnswers.q4 || "—";

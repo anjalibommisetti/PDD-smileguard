@@ -165,27 +165,8 @@ export default function App() {
       try {
         const update = await Updates.checkForUpdateAsync();
         if (update.isAvailable) {
-          Alert.alert(
-            "Update Required",
-            "A mandatory update is available. You must install it to continue using the app.",
-            [
-              { 
-                text: "Update Now", 
-                onPress: async () => {
-                  try {
-                    await Updates.fetchUpdateAsync();
-                    await Updates.reloadAsync();
-                  } catch (err) {
-                    console.log("Failed to fetch update:", err);
-                    // If it fails, they could be stuck, but that's what mandatory means.
-                    // We can alert them to try again.
-                    Alert.alert("Update Failed", "Please restart the app and try again.");
-                  }
-                }
-              }
-            ],
-            { cancelable: false }
-          );
+          await Updates.fetchUpdateAsync();
+          await Updates.reloadAsync();
         }
       } catch (e) {
         console.log("Error checking for updates:", e);

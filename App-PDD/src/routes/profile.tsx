@@ -37,6 +37,7 @@ export default function ProfileScreen() {
 
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState("");
+  const [editAge, setEditAge] = useState("");
   const [editPhone, setEditPhone] = useState("");
   const [editDob, setEditDob] = useState("");
   const [editGender, setEditGender] = useState("");
@@ -104,7 +105,9 @@ export default function ProfileScreen() {
       setUser(session?.user ?? null);
       calculateWeeklyStreak(session?.user);
       if (session?.user) {
+        const localAge = await AsyncStorage.getItem("user_age");
         setEditName(session.user.user_metadata?.full_name || "");
+        setEditAge(session.user.user_metadata?.age || localAge || "");
         setEditPhone(session.user.user_metadata?.phone || "");
         setEditDob(session.user.user_metadata?.dob || "");
         setEditGender(session.user.user_metadata?.gender || "");
@@ -157,6 +160,7 @@ export default function ProfileScreen() {
       const updatePayload: any = {
         data: {
           full_name: editName,
+          age: editAge,
           phone: editPhone,
           dob: editDob,
           gender: editGender,
@@ -169,6 +173,9 @@ export default function ProfileScreen() {
       if (error) throw error;
       if (editName) {
         await AsyncStorage.setItem("user_full_name", editName);
+      }
+      if (editAge) {
+        await AsyncStorage.setItem("user_age", editAge);
       }
       Alert.alert("Success", "Profile updated successfully!");
       setIsEditing(false);
