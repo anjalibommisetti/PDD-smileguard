@@ -305,7 +305,6 @@ function computeRisk(answers: Record<string, any>) {
         ]
       : level === "Medium"
         ? [
-            "Schedule a dental visit within 3 months",
             "Reduce sugary food consumption",
             "Brush twice daily and floss regularly",
             "Consider using mouthwash",

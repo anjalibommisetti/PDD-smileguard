@@ -193,7 +193,14 @@ export default function ResultsScreen() {
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Recommendations</Text>
             <View style={styles.recList}>
-              {recommendations.map((r, idx) => {
+              {recommendations
+                .filter(
+                  (r) =>
+                    !r.toLowerCase().includes("dental visit within 3 months") &&
+                    !r.toLowerCase().includes("visit within 3 months") &&
+                    !r.toLowerCase().includes("within 3 months")
+                )
+                .map((r, idx) => {
                 const isDentist =
                   r.toLowerCase().includes("dentist") || r.toLowerCase().includes("visit");
                 const isBrush =
@@ -228,7 +235,7 @@ export default function ResultsScreen() {
           <TouchableOpacity
             style={styles.btnSecondary}
             activeOpacity={0.8}
-            onPress={() => navigation.navigate("Report", { id: assessmentId, score: currentScore })}
+            onPress={() => navigation.navigate("Report", { id: assessmentId, score })}
           >
             <Feather name="file-text" size={16} color="#0F172A" />
             <Text style={styles.btnSecondaryText}>Full Report</Text>
