@@ -183,8 +183,8 @@ export default function ReportScreen() {
         month: "short",
         year: "numeric",
       });
-  const riskLevel = assessment?.level || params?.level || "Low";
   const riskScore = assessment?.score ?? currentScore;
+  const riskLevel = riskScore >= 70 ? "High" : riskScore >= 35 ? "Medium" : "Low";
   const riskColor =
     riskLevel === "High" ? "#EF4444" : riskLevel === "Medium" ? "#F59E0B" : "#10B981";
 
@@ -402,8 +402,7 @@ export default function ReportScreen() {
             <div><div class="info-label">Patient ID</div><div class="info-value">${user?.id?.slice(0, 8) || "N/A"}</div></div>
             <div><div class="info-label">Age</div><div class="info-value">${patientAge} yrs</div></div>
             <div><div class="info-label">Gender</div><div class="info-value">${patientGender}</div></div>
-            <div><div class="info-label">Area</div><div class="info-value">${patientArea}</div></div>
-            <div><div class="info-label">Tobacco Use</div><div class="info-value">${tobaccoUse}</div></div>
+            <div><div class="info-label">Assessment Date</div><div class="info-value">${assessmentDate}</div></div>
           </div>
         </div>
 
@@ -498,20 +497,8 @@ export default function ReportScreen() {
               <Text style={styles.detailValue}>{patientGender}</Text>
             </View>
             <View style={styles.detailItem}>
-              <Text style={styles.detailLabel}>Area</Text>
-              <Text style={styles.detailValue}>{patientArea}</Text>
-            </View>
-            <View style={styles.detailItem}>
               <Text style={styles.detailLabel}>Date</Text>
               <Text style={styles.detailValue}>{assessmentDate}</Text>
-            </View>
-            <View style={styles.detailItem}>
-              <Text style={styles.detailLabel}>Education</Text>
-              <Text style={styles.detailValue}>{patientEducation}</Text>
-            </View>
-            <View style={styles.detailItem}>
-              <Text style={styles.detailLabel}>Tobacco</Text>
-              <Text style={styles.detailValue}>{tobaccoUse}</Text>
             </View>
           </View>
         </View>

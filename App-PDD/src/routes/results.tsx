@@ -77,9 +77,8 @@ export default function ResultsScreen() {
     }
   };
 
-  // Ensure accurate risk level based on numerical score (score >= 35 is Medium, score >= 70 is High)
-  const computedLevel = score >= 70 ? "High" : score >= 35 ? "Medium" : "Low";
-  const displayLevel = (level === "Low" && score >= 35) ? "Medium" : (level || computedLevel);
+  // Ensure accurate risk level based on numerical score (score >= 70 is High, score >= 35 is Medium, score < 35 is Low)
+  const displayLevel = score >= 70 ? "High" : score >= 35 ? "Medium" : "Low";
   const heroColor = displayLevel === "High" ? "#EF4444" : displayLevel === "Medium" ? "#F59E0B" : "#10B981";
 
   if (loading) {
