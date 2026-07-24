@@ -10,6 +10,7 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from "react-native";
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
@@ -18,6 +19,7 @@ import { ScreenHeader } from "../components/ScreenHeader";
 import { Feather } from "@expo/vector-icons";
 import { supabase } from "../lib/supabase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as ImagePicker from "expo-image-picker";
 
 const badges = [
   { name: "Healthy Habits", icon: "star", tone: "mint" },
@@ -36,6 +38,7 @@ export default function ProfileScreen() {
   const [role, setRole] = useState("Patient");
 
   const [isEditing, setIsEditing] = useState(false);
+  const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editAge, setEditAge] = useState("");
   const [editPhone, setEditPhone] = useState("");
@@ -54,6 +57,29 @@ export default function ProfileScreen() {
       fetchUser();
     }, []),
   );
+
+  const pickImage = async () => {
+    try {
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permissionResult.granted) {
+        Alert.alert("Permission Required", "Photo library access is needed to select a profile picture.");
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const photoUri = result.assets[0].uri;
+        setProfilePhoto(photoUri);
+        await AsyncStorage.setItem("user_profile_photo", photoUri);
+      }
+    } catch (err) {
+      console.log("Image picker error:", err);
+    }
+  };
 
   const calculateWeeklyStreak = async (sessionUser?: any) => {
     try {
@@ -261,14 +287,27 @@ export default function ProfileScreen() {
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.userCard}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{initials}</Text>
-          </View>
+          <TouchableOpacity style={styles.avatar} onPress={pickImage} activeOpacity={0.8}>
+            {profilePhoto ? (
+              <Image source={{ uri: profilePhoto }} style={{ width: 64, height: 64, borderRadius: 16 }} />
+            ) : (
+              <Text style={styles.avatarText}>{initials}</Text>
+            )}
+            <View style={styles.cameraIconBadge}>
+              <Feather name="camera" size={10} color="#fff" />
+            </View>
+          </TouchableOpacity>
           <View style={{ flex: 1 }}>
             <Text style={styles.userName}>{fullName}</Text>
             <Text style={styles.userEmail}>{user?.email}</Text>
             {user?.user_metadata?.phone ? <Text style={styles.userEmail}>📞 {user.user_metadata.phone}</Text> : null}
-            {user?.user_metadata?.dob || user?.user_metadata?.gender ? <Text style={styles.userEmail}>👤 {user?.user_metadata?.gender ? user.user_metadata.gender + " · " : ""}{user?.user_metadata?.dob || ""}</Text> : null}
+            {user?.user_metadata?.age || user?.user_metadata?.dob || user?.user_metadata?.gender ? (
+              <Text style={styles.userEmail}>
+                👤 {user?.user_metadata?.gender ? user.user_metadata.gender + " · " : ""}
+                {user?.user_metadata?.age ? `${user.user_metadata.age} yrs · ` : ""}
+                {user?.user_metadata?.dob || ""}
+              </Text>
+            ) : null}
 
             <View style={{ flexDirection: "row", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
               <View style={styles.roleBadge}>
@@ -408,13 +447,36 @@ export default function ProfileScreen() {
                 <Feather name="x" size={24} color="#64748B" />
               </TouchableOpacity>
             </View>
-            <ScrollView style={styles.modalBody}>
+            <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+              {/* Profile Photo Picker */}
+              <View style={{ alignItems: "center", marginVertical: 12 }}>
+                <TouchableOpacity style={styles.photoPickerBox} onPress={pickImage} activeOpacity={0.8}>
+                  {profilePhoto ? (
+                    <Image source={{ uri: profilePhoto }} style={{ width: 80, height: 80, borderRadius: 20 }} />
+                  ) : (
+                    <View style={styles.photoPickerPlaceholder}>
+                      <Feather name="camera" size={24} color="#0D4B42" />
+                    </View>
+                  )}
+                  <View style={styles.photoEditBadge}>
+                    <Text style={{ color: "#fff", fontSize: 10, fontWeight: "bold" }}>Change</Text>
+                  </View>
+                </TouchableOpacity>
+                <Text style={{ fontSize: 12, color: "#64748B", marginTop: 6 }}>Tap to change Profile Photo</Text>
+              </View>
+
               <Text style={styles.inputLabel}>Full Name</Text>
               <TextInput style={styles.inputField} value={editName} onChangeText={setEditName} placeholder="Enter your full name" />
               
+              <Text style={styles.inputLabel}>Email (Account Email)</Text>
+              <TextInput style={[styles.inputField, { backgroundColor: "#F1F5F9", color: "#64748B" }]} value={user?.email || ""} editable={false} />
+
               <Text style={styles.inputLabel}>Phone Number</Text>
               <TextInput style={styles.inputField} value={editPhone} onChangeText={setEditPhone} placeholder="e.g. +1 234 567 8900" keyboardType="phone-pad" />
               
+              <Text style={styles.inputLabel}>Age (Years)</Text>
+              <TextInput style={styles.inputField} value={editAge} onChangeText={setEditAge} placeholder="e.g. 24" keyboardType="numeric" />
+
               <Text style={styles.inputLabel}>Date of Birth</Text>
               <TextInput style={styles.inputField} value={editDob} onChangeText={setEditDob} placeholder="DD/MM/YYYY" />
               
@@ -680,12 +742,45 @@ const styles = StyleSheet.create({
   },
 
   modalBg: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "flex-end" },
-  modalCard: { backgroundColor: "#fff", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, maxHeight: "80%" },
-  modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 20 },
+  modalCard: { backgroundColor: "#fff", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, maxHeight: "85%" },
+  modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
   modalTitle: { fontSize: 18, fontWeight: "bold", color: "#0F172A" },
   modalBody: { paddingBottom: 40 },
   inputLabel: { fontSize: 13, fontWeight: "600", color: "#64748B", marginBottom: 6, marginTop: 12 },
   inputField: { borderWidth: 1, borderColor: "#E2E8F0", borderRadius: 12, padding: 14, fontSize: 15, color: "#0F172A", backgroundColor: "#F8FAFC" },
   saveBtn: { backgroundColor: "#0D9488", padding: 16, borderRadius: 16, alignItems: "center", marginTop: 24 },
   saveBtnText: { color: "#fff", fontWeight: "bold", fontSize: 16 },
+  cameraIconBadge: {
+    position: "absolute",
+    bottom: -2,
+    right: -2,
+    backgroundColor: "#0D4B42",
+    borderRadius: 8,
+    padding: 4,
+    borderWidth: 1.5,
+    borderColor: "#fff",
+  },
+  photoPickerBox: {
+    position: "relative",
+    width: 80,
+    height: 80,
+    borderRadius: 20,
+    backgroundColor: "#E6FFFA",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#86F1D4",
+  },
+  photoPickerPlaceholder: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  photoEditBadge: {
+    position: "absolute",
+    bottom: -6,
+    backgroundColor: "#0D4B42",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
 });
