@@ -6,7 +6,7 @@ Classes (alphabetical, as Keras reads them):
 """
 import os
 import sys
-import tensorflow as tf
+import tensorflow as tf  # type: ignore
 layers = tf.keras.layers
 models = tf.keras.models
 

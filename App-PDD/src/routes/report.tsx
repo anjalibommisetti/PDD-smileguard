@@ -7,6 +7,8 @@ import {
   ScrollView,
   Image,
   Alert,
+  Share,
+  Platform,
 } from "react-native";
 import React from "react";
 import { useNavigation } from "@react-navigation/native";
@@ -180,6 +182,7 @@ export default function ReportScreen() {
         year: "numeric",
       });
   const riskLevel = assessment?.level || params?.level || "Low";
+  const riskScore = assessment?.score ?? currentScore;
   const riskColor =
     riskLevel === "High" ? "#EF4444" : riskLevel === "Medium" ? "#F59E0B" : "#10B981";
 
@@ -188,32 +191,107 @@ export default function ReportScreen() {
   const hasTrend = trend.length >= 2;
   const maxScore = hasTrend ? Math.max(...trend.map((t: any) => t.score), 1) : 100;
 
-  const recommendations = [
-    {
-      icon: "info",
-      title: "Brushing",
-      text: "Brush twice daily using fluoride toothpaste for 2 minutes.",
-    },
-    { icon: "star", title: "Flossing", text: "Floss daily to remove plaque from between teeth." },
-    {
-      icon: "coffee",
-      title: "Diet",
-      text: "Reduce sugary snacks and acidic drinks to protect enamel.",
-    },
-    {
-      icon: "droplet",
-      title: "Mouthwash",
-      text: "Use an antibacterial mouthwash after brushing to reduce bacteria.",
-    },
-    {
-      icon: "alert-triangle",
-      title: "Urgency",
-      text:
-        riskLevel === "High"
-          ? "Consult a dentist immediately within 1-2 weeks."
-          : "Schedule your next routine dental check-up.",
-    },
-  ];
+  const getRiskRecommendations = () => {
+    if (riskLevel === "High") {
+      return [
+        {
+          icon: "alert-triangle",
+          title: "Urgent Dental Consultation",
+          text: "Schedule an in-person dental check-up within 1-2 weeks for evaluation.",
+        },
+        {
+          icon: "shield-off",
+          title: "Gingival & Plaque Control",
+          text: "Brush gently twice daily using fluoride toothpaste and an ultra-soft toothbrush.",
+        },
+        {
+          icon: "disc",
+          title: "Daily Interdental Cleaning",
+          text: "Floss carefully every night to remove plaque buildup between teeth.",
+        },
+        {
+          icon: "coffee",
+          title: "Strict Dietary Sugar Control",
+          text: "Limit sugary snacks, sodas, and sweet drinks to prevent cavity progression.",
+        },
+        {
+          icon: "slash",
+          title: "Lifestyle Habit Adjustment",
+          text: "Avoid tobacco products and limit alcohol consumption to protect gums.",
+        },
+      ];
+    } else if (riskLevel === "Medium") {
+      return [
+        {
+          icon: "coffee",
+          title: "Dietary Sugar Management",
+          text: "Reduce sugary snacks and acidic drinks to protect enamel from erosion.",
+        },
+        {
+          icon: "sun",
+          title: "Twice Daily Brushing",
+          text: "Brush thoroughly twice daily for 2 minutes and floss every evening.",
+        },
+        {
+          icon: "droplet",
+          title: "Antibacterial Mouth Rinsing",
+          text: "Use an alcohol-free antibacterial mouthwash daily after brushing.",
+        },
+        {
+          icon: "calendar",
+          title: "Routine Checkup",
+          text: "Schedule your next 6-monthly dental cleaning and preventive exam.",
+        },
+      ];
+    } else {
+      return [
+        {
+          icon: "check-circle",
+          title: "Hygiene Maintenance",
+          text: "Maintain your current routine of twice-daily brushing and daily flossing.",
+        },
+        {
+          icon: "droplet",
+          title: "Optimal Hydration",
+          text: "Drink plenty of water throughout the day to support saliva protection.",
+        },
+        {
+          icon: "calendar",
+          title: "Preventive Care",
+          text: "Continue regular 6-month preventive dental checkups.",
+        },
+      ];
+    }
+  };
+
+  const recommendations = getRiskRecommendations();
+
+  const handleShare = async () => {
+    const message = `SmileGuard Dental Health Report\nPatient: ${patientName}\nAge: ${patientAge} | Gender: ${patientGender}\nRisk Score: ${riskScore}% (${riskLevel} Risk)\nAssessment Date: ${assessmentDate}\n\nKey Recommendations:\n${recommendations.map((r) => `• ${r.title}: ${r.text}`).join("\n")}`;
+
+    try {
+      if (Platform.OS === "web") {
+        if (typeof navigator !== "undefined" && navigator.share) {
+          await navigator.share({
+            title: "SmileGuard Health Report",
+            text: message,
+          });
+        } else if (typeof navigator !== "undefined" && navigator.clipboard) {
+          await navigator.clipboard.writeText(message);
+          Alert.alert("Copied to Clipboard", "Health Report summary copied to your clipboard!");
+        } else {
+          Alert.alert("Health Report Summary", message);
+        }
+      } else {
+        await Share.share({
+          message: message,
+          title: "SmileGuard Health Report",
+        });
+      }
+    } catch (err: any) {
+      console.log("Share error:", err);
+    }
+  };
 
   return (
     <PhoneShell showNav={false}>
@@ -440,7 +518,7 @@ export default function ReportScreen() {
           <TouchableOpacity
             style={styles.btnSecondary}
             activeOpacity={0.8}
-            onPress={() => Alert.alert("Shared", "Report shared successfully.")}
+            onPress={handleShare}
           >
             <Feather name="share-2" size={16} color="#0F172A" />
             <Text style={styles.btnSecondaryText}>Share</Text>
