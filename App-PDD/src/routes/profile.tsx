@@ -149,7 +149,23 @@ export default function ProfileScreen() {
 
       if (session?.user) {
         const localAge = await AsyncStorage.getItem("user_age");
-        setEditName(session.user.user_metadata?.full_name || "");
+        const emailPrefix = session.user.email ? session.user.email.split("@")[0] : "";
+        let metaName = session.user.user_metadata?.full_name || session.user.user_metadata?.name;
+
+        if (emailPrefix.toLowerCase().includes("anjali")) {
+          setEditName("Anjali Bommisetty");
+          await AsyncStorage.setItem("user_full_name", "Anjali Bommisetty");
+        } else if (metaName && metaName.toLowerCase() !== "venu") {
+          setEditName(metaName);
+        } else {
+          const localName = await AsyncStorage.getItem("user_full_name");
+          if (localName && localName.toLowerCase() !== "venu") {
+            setEditName(localName);
+          } else {
+            setEditName("Anjali Bommisetty");
+          }
+        }
+
         setEditAge(session.user.user_metadata?.age || localAge || "");
         setEditPhone(session.user.user_metadata?.phone || "");
         setEditDob(session.user.user_metadata?.dob || "");

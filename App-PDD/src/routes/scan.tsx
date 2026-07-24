@@ -141,7 +141,6 @@ function simulateAIAnalysis(seed: number) {
 
 // ─── Offline Image-Based Pixel Analyzer ───────────────────────────────────────
 async function runOfflineAnalysis(uri: string, seed: number): Promise<ReturnType<typeof simulateAIAnalysis>> {
-  return simulateAIAnalysis(seed);
   if (Platform.OS !== "web" || typeof window === "undefined") {
     return simulateAIAnalysis(seed);
   }
@@ -188,12 +187,12 @@ async function runOfflineAnalysis(uri: string, seed: number): Promise<ReturnType
         const yellowRatio = yellowCount / total;
         const darkRatio = darkCount / total;
 
-        let score = 33 + Math.floor(redRatio * 350) + Math.floor(yellowRatio * 250) + Math.floor(darkRatio * 200);
-        score = Math.min(96, Math.max(30, score));
+        let score = 12 + Math.floor(redRatio * 350) + Math.floor(yellowRatio * 250) + Math.floor(darkRatio * 200);
+        score = Math.min(96, Math.max(12, score));
 
         let level: "Healthy" | "Minimal" | "Low" | "Medium" | "High" = "Low";
         if (score >= 70) level = "High";
-        else if (score >= 45) level = "Medium";
+        else if (score >= 35) level = "Medium";
 
         const hasCaries = score > 75 || darkRatio > 0.15 || (yellowRatio > 0.15 && darkRatio > 0.05);
         const hasGingivitis = score > 50 || redRatio > 0.04;

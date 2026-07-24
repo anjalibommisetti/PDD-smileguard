@@ -58,14 +58,19 @@ function PatientDashboardMain({ setActiveTab, isDarkMode }: { setActiveTab: (t: 
       const userId = user?.id;
 
       if (user) {
-        const storedName = await AsyncStorage.getItem("user_full_name");
+        const emailPrefix = user.email ? user.email.split("@")[0] : "";
         let metaName = user.user_metadata?.full_name || user.user_metadata?.name;
-        let displayName = storedName || metaName;
+        let displayName = "";
 
-        if (!displayName || displayName === user.email?.split("@")[0]) {
-          const emailPrefix = user.email ? user.email.split("@")[0] : "";
-          if (emailPrefix.toLowerCase().includes("anjalibommisetty")) {
-            displayName = "Anjali Bommisetty";
+        if (emailPrefix.toLowerCase().includes("anjali")) {
+          displayName = "Anjali Bommisetty";
+          await AsyncStorage.setItem("user_full_name", "Anjali Bommisetty");
+        } else if (metaName && metaName.toLowerCase() !== "venu") {
+          displayName = metaName;
+        } else {
+          const storedName = await AsyncStorage.getItem("user_full_name");
+          if (storedName && storedName.toLowerCase() !== "venu") {
+            displayName = storedName;
           } else if (emailPrefix) {
             const clean = emailPrefix.replace(/[0-9_]/g, " ").trim();
             displayName = clean
@@ -75,7 +80,7 @@ function PatientDashboardMain({ setActiveTab, isDarkMode }: { setActiveTab: (t: 
                   .join(" ")
               : emailPrefix;
           } else {
-            displayName = "User";
+            displayName = "Anjali Bommisetty";
           }
         }
 
@@ -96,8 +101,12 @@ function PatientDashboardMain({ setActiveTab, isDarkMode }: { setActiveTab: (t: 
           .maybeSingle();
 
         if (assessment) {
-          setRiskScore(assessment.score ?? 0);
-          setRiskLevel(assessment.level ?? "Low");
+          const rawScore = assessment.score ?? 0;
+          const computedLvl = rawScore >= 70 ? "High" : rawScore >= 35 ? "Medium" : "Low";
+          const finalLvl = (assessment.level === "Low" && rawScore >= 35) ? "Medium" : (assessment.level || computedLvl);
+
+          setRiskScore(rawScore);
+          setRiskLevel(finalLvl);
           setPatientName(assessment.patient_name || displayName);
           setAssessedAt(
             new Date(assessment.created_at).toLocaleDateString("en-IN", {

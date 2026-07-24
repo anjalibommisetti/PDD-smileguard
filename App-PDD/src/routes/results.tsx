@@ -77,6 +77,11 @@ export default function ResultsScreen() {
     }
   };
 
+  // Ensure accurate risk level based on numerical score (score >= 35 is Medium, score >= 70 is High)
+  const computedLevel = score >= 70 ? "High" : score >= 35 ? "Medium" : "Low";
+  const displayLevel = (level === "Low" && score >= 35) ? "Medium" : (level || computedLevel);
+  const heroColor = displayLevel === "High" ? "#EF4444" : displayLevel === "Medium" ? "#F59E0B" : "#10B981";
+
   if (loading) {
     return (
       <PhoneShell showNav={false}>
@@ -115,15 +120,14 @@ export default function ResultsScreen() {
           style={[
             styles.heroCard,
             {
-              backgroundColor:
-                level === "High" ? "#EF4444" : level === "Medium" ? "#F59E0B" : "#10B981",
+              backgroundColor: heroColor,
             },
           ]}
         >
           <View style={styles.heroTop}>
             <Text style={styles.heroLabel}>Risk Score</Text>
             <View style={styles.heroBadge}>
-              <Text style={styles.heroBadgeText}>{level}</Text>
+              <Text style={styles.heroBadgeText}>{displayLevel}</Text>
             </View>
           </View>
           <View style={styles.scoreWrap}>
@@ -135,14 +139,14 @@ export default function ResultsScreen() {
           </View>
           <View style={styles.heroWarning}>
             <Feather
-              name={level === "Low" ? "check-circle" : "alert-triangle"}
+              name={displayLevel === "Low" ? "check-circle" : "alert-triangle"}
               size={20}
               color="#FFFFFF"
             />
             <Text style={styles.heroWarningText}>
-              {level === "High"
+              {displayLevel === "High"
                 ? "Immediate Attention Required"
-                : level === "Medium"
+                : displayLevel === "Medium"
                   ? "Precautionary Measures Needed"
                   : "Maintain Good Hygiene"}
             </Text>

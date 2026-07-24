@@ -50,11 +50,15 @@ export default function HistoryScreen() {
             res.data.map((it: any) => {
               const isScan = (it.patient_name || "").startsWith("[Scan]");
               const isInProgress = it.level === "In Progress";
+              const rawScore = it.score ?? 0;
+              const computedLvl = rawScore >= 70 ? "High" : rawScore >= 35 ? "Medium" : "Low";
+              const finalLvl = (it.level === "Low" && rawScore >= 35) ? "Medium" : (it.level || computedLvl);
+
               const tone = isInProgress
                 ? "pending"
-                : it.level === "High"
+                : finalLvl === "High"
                   ? "alert"
-                  : it.level === "Medium"
+                  : finalLvl === "Medium"
                     ? "warning"
                     : "success";
               return {
