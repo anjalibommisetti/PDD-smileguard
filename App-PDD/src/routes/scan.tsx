@@ -426,16 +426,6 @@ async function callPredictAPI(
       let detected = c.detected;
       let severity = c.severity || (c.detected ? "Detected" : "None");
 
-      // --- AI Sensitivity Boost (Demo Adjustment) ---
-      // The base model sometimes confuses severe caries with discoloration.
-      // We artificially boost Caries confidence to ensure it gets flagged for the demo.
-      if (c.label === "Caries") {
-        conf = Math.min(99, conf + 60); // Boost confidence
-        detected = conf >= 35;
-        severity = conf >= 75 ? "Severe" : conf >= 50 ? "Moderate" : detected ? "Mild" : "None";
-        if (detected) boostedCaries = true;
-      }
-
       if (conf > maxConf) {
         maxConf = conf;
         topClass = label;
@@ -445,7 +435,7 @@ async function callPredictAPI(
         label: label,
         detected: detected,
         severity: severity,
-        color: conf >= 70 ? "#EF4444" : conf >= 45 ? "#F59E0B" : "#10B981",
+        color: conf >= 70 ? "#10B981" : conf >= 35 ? "#F59E0B" : "#EF4444",
         confidence: Math.round(conf),
         description: DISEASE_INFO[label]?.description || "",
         urgency: DISEASE_INFO[label]?.urgency || "Routine",
@@ -457,12 +447,6 @@ async function callPredictAPI(
 
     let level: "Healthy" | "Minimal" | "Low" | "Medium" | "High" = (data.risk_level as any) || "Low";
     let score = data.risk_score;
-
-    if (boostedCaries) {
-      level = "High";
-      score = Math.max(score, 88);
-      topClass = "Dental Caries (Tooth Decay)";
-    }
 
     const suggestions: string[] = [];
     if (level === "High") suggestions.push("Book a dental appointment within 1–2 weeks");
