@@ -45,8 +45,12 @@ export default function ProfileScreen() {
   const [editDob, setEditDob] = useState("");
   const [editGender, setEditGender] = useState("");
   const [editPassword, setEditPassword] = useState("");
+  const [editConfirmPassword, setEditConfirmPassword] = useState("");
   const [savingProfile, setSavingProfile] = useState(false);
 
+  const [language, setLanguage] = useState("English");
+  const [isLanguageModalOpen, setIsLanguageModalOpen] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
 
   const [weeklyStreak, setWeeklyStreak] = useState<number>(1);
   const [daysInCurrentWeek, setDaysInCurrentWeek] = useState<number>(1);
@@ -123,13 +127,24 @@ export default function ProfileScreen() {
 
   const fetchUser = async () => {
     try {
-      // getSession() reads from localStorage — no network hang
       const {
         data: { session },
       } = await supabase.auth.getSession();
       
       setUser(session?.user ?? null);
       calculateWeeklyStreak(session?.user);
+
+      const savedPhoto = await AsyncStorage.getItem("user_profile_photo");
+      if (savedPhoto) {
+        setProfilePhoto(savedPhoto);
+      }
+
+      const savedLang = await AsyncStorage.getItem("@smileguard_language");
+      if (savedLang) setLanguage(savedLang);
+
+      const savedTheme = await AsyncStorage.getItem("@smileguard_dark_mode");
+      if (savedTheme !== null) setIsDarkMode(savedTheme === "true");
+
       if (session?.user) {
         const localAge = await AsyncStorage.getItem("user_age");
         setEditName(session.user.user_metadata?.full_name || "");
@@ -138,8 +153,8 @@ export default function ProfileScreen() {
         setEditDob(session.user.user_metadata?.dob || "");
         setEditGender(session.user.user_metadata?.gender || "");
         setEditPassword("");
+        setEditConfirmPassword("");
       }
-
 
       const storedRole = await AsyncStorage.getItem("userRole");
       if (storedRole === "doctor") {
@@ -183,6 +198,14 @@ export default function ProfileScreen() {
   const handleSaveProfile = async () => {
     setSavingProfile(true);
     try {
+      if (editPassword.trim().length > 0) {
+        if (editPassword !== editConfirmPassword) {
+          setSavingProfile(false);
+          Alert.alert("Password Mismatch", "New Password and Confirm Password do not match. Please re-enter.");
+          return;
+        }
+      }
+
       const updatePayload: any = {
         data: {
           full_name: editName,
@@ -211,6 +234,20 @@ export default function ProfileScreen() {
     } finally {
       setSavingProfile(false);
     }
+  };
+
+  const handleSelectLanguage = async (selectedLang: string) => {
+    setLanguage(selectedLang);
+    await AsyncStorage.setItem("@smileguard_language", selectedLang);
+    setIsLanguageModalOpen(false);
+    Alert.alert("Language Updated", `App language set to ${selectedLang}`);
+  };
+
+  const handleToggleDarkMode = async () => {
+    const nextVal = !isDarkMode;
+    setIsDarkMode(nextVal);
+    await AsyncStorage.setItem("@smileguard_dark_mode", nextVal.toString());
+    Alert.alert("Theme Changed", `Switched to ${nextVal ? "Dark Mode 🌙" : "Light Mode ☀️"}`);
   };
 
   const handleLogout = async () => {
@@ -422,6 +459,20 @@ export default function ProfileScreen() {
           <View style={styles.divider} />
 
           <MenuRow
+            icon="globe"
+            label={`Language: ${language}`}
+            onPress={() => setIsLanguageModalOpen(true)}
+          />
+          <View style={styles.divider} />
+
+          <MenuRow
+            icon={isDarkMode ? "sun" : "moon"}
+            label={isDarkMode ? "Theme: Dark Mode 🌙" : "Theme: Light Mode ☀️"}
+            onPress={handleToggleDarkMode}
+          />
+          <View style={styles.divider} />
+
+          <MenuRow
             icon={streakEnabled ? "eye-off" : "zap"}
             label={streakEnabled ? "Hide Weekly Streak Card" : "Show Weekly Streak Card"}
             onPress={handleToggleRemoveStreakCard}
@@ -485,6 +536,9 @@ export default function ProfileScreen() {
               
               <Text style={styles.inputLabel}>New Password (leave blank to keep current)</Text>
               <TextInput style={styles.inputField} value={editPassword} onChangeText={setEditPassword} placeholder="Enter new password" secureTextEntry />
+
+              <Text style={styles.inputLabel}>Confirm New Password</Text>
+              <TextInput style={styles.inputField} value={editConfirmPassword} onChangeText={setEditConfirmPassword} placeholder="Re-enter new password" secureTextEntry />
               
               <TouchableOpacity style={styles.saveBtn} onPress={handleSaveProfile} disabled={savingProfile}>
                 {savingProfile ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveBtnText}>Save Changes</Text>}
@@ -492,6 +546,41 @@ export default function ProfileScreen() {
             </ScrollView>
           </View>
         </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Language Selection Modal */}
+      <Modal visible={isLanguageModalOpen} animationType="slide" transparent>
+        <TouchableOpacity style={styles.modalBg} activeOpacity={1} onPress={() => setIsLanguageModalOpen(false)}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select App Language</Text>
+              <TouchableOpacity onPress={() => setIsLanguageModalOpen(false)}>
+                <Feather name="x" size={24} color="#64748B" />
+              </TouchableOpacity>
+            </View>
+            <View style={{ gap: 12, paddingVertical: 10 }}>
+              {["English", "Telugu (తెలుగు)", "Hindi (हिंदी)", "Tamil (தமிழ்)"].map((langItem) => (
+                <TouchableOpacity
+                  key={langItem}
+                  style={{
+                    padding: 16,
+                    borderRadius: 14,
+                    backgroundColor: language === langItem ? "#E6FFFA" : "#F8FAFC",
+                    borderWidth: 1,
+                    borderColor: language === langItem ? "#0D9488" : "#E2E8F0",
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                  onPress={() => handleSelectLanguage(langItem)}
+                >
+                  <Text style={{ fontSize: 16, fontWeight: "600", color: "#0F172A" }}>{langItem}</Text>
+                  {language === langItem && <Feather name="check" size={20} color="#0D9488" />}
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </TouchableOpacity>
       </Modal>
     </PhoneShell>
 

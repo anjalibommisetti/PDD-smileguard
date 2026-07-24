@@ -62,6 +62,15 @@ export default function AlertsScreen() {
 
       const generatedAlerts: any[] = [];
 
+      // Alert 0: Logged In Successfully Notification
+      generatedAlerts.push({
+        icon: "check-circle",
+        title: "Logged In Successfully",
+        desc: `Authenticated active session for ${userName} (${user?.email || "User"}). Security session verified.`,
+        time: "Just now",
+        tone: "mint",
+      });
+
       // Alert 1: Assessment / Risk Status
       if (latestAssessment) {
         const score = latestAssessment.score ?? 0;
