@@ -1002,8 +1002,19 @@ export default function ScanScreen() {
     `;
 
     try {
-      if (Platform.OS === "web") {
-        await Print.printAsync({ html: htmlContent });
+      if (Platform.OS === "web" && typeof window !== "undefined") {
+        const printWindow = window.open("", "_blank", "width=850,height=1100");
+        if (printWindow) {
+          printWindow.document.open();
+          printWindow.document.write(htmlContent);
+          printWindow.document.close();
+          printWindow.focus();
+          setTimeout(() => {
+            printWindow.print();
+          }, 300);
+        } else {
+          await Print.printAsync({ html: htmlContent });
+        }
       } else {
         const { uri } = await Print.printToFileAsync({ html: htmlContent });
         await Sharing.shareAsync(uri, { mimeType: "application/pdf", dialogTitle: "Download Scan PDF Report" });
