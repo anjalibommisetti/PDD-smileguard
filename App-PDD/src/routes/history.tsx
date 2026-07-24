@@ -219,12 +219,14 @@ export default function HistoryScreen() {
                       {it.displayDate} · {it.displayTime}
                     </Text>
                     <View
-                      style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4, flexWrap: "wrap" }}
+                      style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4, flexWrap: "wrap" }}
                     >
-                      <Text style={[styles.scoreText, { color: c.fg }]}>{it.score ?? 0}% Risk</Text>
+                      <Text style={[styles.scoreText, { color: c.fg, fontSize: 14, fontWeight: "800" }]}>
+                        {100 - (it.score ?? 0)}/100 Health
+                      </Text>
                       <View style={[styles.badge, { backgroundColor: c.bg }]}>
                         <Text style={[styles.badgeText, { color: c.fg }]}>
-                          {!isCompleted ? "⏳ Prediction Risk" : `Prediction Risk (${100 - (it.score ?? 0)}/100 Health)`}
+                          {!isCompleted ? "⏳ In Progress" : `${it.score}% ${it.level || "Risk"}`}
                         </Text>
                       </View>
                     </View>

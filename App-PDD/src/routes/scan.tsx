@@ -1224,6 +1224,24 @@ export default function ScanScreen() {
           {result && (
             <Animated.View style={{ opacity: fadeAnim as any }}>
 
+              {/* ── Scanned Image Preview Card ── */}
+              {imageUri && (
+                <View style={s.scannedImageCard}>
+                  <View style={s.scannedImageHeader}>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                      <Feather name="image" size={16} color="#157A6E" />
+                      <Text style={s.scannedImageTitle}>Uploaded Dental Image</Text>
+                    </View>
+                    <View style={s.scannedBadge}>
+                      <Feather name="check-circle" size={12} color="#10B981" />
+                      <Text style={s.scannedBadgeText}>AI Scanned</Text>
+                    </View>
+                  </View>
+                  <View style={s.scannedImageWrapper}>
+                    <Image source={{ uri: imageUri }} style={s.scannedImage} resizeMode="cover" />
+                  </View>
+                </View>
+              )}
 
               {/* Image Quality Warning */}
               {imageWarning && (
@@ -2055,6 +2073,59 @@ const styles = StyleSheet.create({
     borderColor: "#86F1D4",
   },
   dentistBtnText: { fontSize: 14, fontWeight: "700", color: "#157A6E" },
+
+  // ── Scanned Image Card ──
+  scannedImageCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 24,
+    padding: 16,
+    marginBottom: 16,
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  scannedImageHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+  scannedImageTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#0F172A",
+  },
+  scannedBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#ECFDF5",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#A7F3D0",
+  },
+  scannedBadgeText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#047857",
+  },
+  scannedImageWrapper: {
+    width: "100%",
+    height: 220,
+    borderRadius: 16,
+    overflow: "hidden",
+    backgroundColor: "#F1F5F9",
+  },
+  scannedImage: {
+    width: "100%",
+    height: "100%",
+  },
 });
 
 const s = styles;
