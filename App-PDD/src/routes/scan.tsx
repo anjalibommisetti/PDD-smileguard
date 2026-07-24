@@ -6,6 +6,8 @@ import { ScreenHeader } from "../components/ScreenHeader";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { supabase } from "../lib/supabase";
 import * as ImagePicker from "expo-image-picker";
+import * as Print from "expo-print";
+import * as Sharing from "expo-sharing";
 
 // ─── Backend URL ──────────────────────────────────────────────────────────────
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || "https://pdd-smileguard.onrender.com";
@@ -850,63 +852,166 @@ export default function ScanScreen() {
     }
   };
 
-  const handleDownloadReport = () => {
+  const handleDownloadReport = async () => {
     if (!result) return;
-    const now = new Date().toLocaleString();
-    const detectedFindings = result.findings.filter(f => f.detected);
-    const healthyFindings = result.findings.filter(f => !f.detected);
+    const now = new Date().toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+    const detectedFindings = result.findings.filter((f) => f.detected);
 
-    let report = `═══════════════════════════════════════════════\n`;
-    report += `       SMILEGUARD — DENTAL SCAN REPORT\n`;
-    report += `═══════════════════════════════════════════════\n\n`;
-    report += `Date: ${now}\n`;
-    report += `Confidence: ${result.confidence}%\n`;
-    report += `Risk Level: ${result.level}\n`;
-    report += `Health Score: ${100 - result.score}/100\n`;
-    report += `Primary Finding: ${result.predictedClass}\n\n`;
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>SmileGuard Dental Scan Report</title>
+        <style>
+          body {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            padding: 36px;
+            color: #0F172A;
+            background: #FFFFFF;
+          }
+          .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 3px solid #0D9488;
+            padding-bottom: 16px;
+            margin-bottom: 24px;
+          }
+          .brand {
+            font-size: 24px;
+            font-weight: bold;
+            color: #0D9488;
+          }
+          .date { font-size: 14px; color: #64748B; }
+          .badge {
+            display: inline-block;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 14px;
+            text-transform: uppercase;
+          }
+          .badge-High { background: #FEE2E2; color: #EF4444; }
+          .badge-Medium { background: #FEF3C7; color: #F59E0B; }
+          .badge-Low { background: #D1FAE5; color: #10B981; }
+          
+          .section {
+            background: #F8FAFC;
+            border: 1px solid #E2E8F0;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+          }
+          .section-title {
+            font-size: 12px;
+            font-weight: bold;
+            color: #0D9488;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 14px;
+          }
+          .score-container {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+          }
+          .score-number { font-size: 44px; font-weight: 800; color: #0F172A; }
+          
+          .finding-item {
+            padding: 12px 0;
+            border-bottom: 1px solid #E2E8F0;
+          }
+          .finding-item:last-child { border-bottom: none; }
+          .finding-title { font-weight: 600; color: #0F172A; font-size: 15px; }
+          .finding-meta { color: #DC2626; font-size: 13px; font-weight: bold; margin-top: 2px; }
+          .finding-desc { color: #64748B; font-size: 13px; margin-top: 3px; }
+          
+          .footer {
+            margin-top: 40px;
+            padding-top: 16px;
+            border-top: 1px solid #E2E8F0;
+            font-size: 11px;
+            color: #94A3B8;
+            text-align: center;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div>
+            <div class="brand">SmileGuard Dental Scan Report</div>
+            <div style="font-size: 12px; color: #64748B; margin-top: 4px;">Computer Vision Oral Analysis</div>
+          </div>
+          <div class="date">Date: ${now}</div>
+        </div>
 
-    report += `───────────────────────────────────────────────\n`;
-    report += `  DETECTED CONDITIONS\n`;
-    report += `───────────────────────────────────────────────\n`;
-    if (detectedFindings.length === 0) {
-      report += `  ✅ No conditions detected — Healthy!\n`;
-    } else {
-      detectedFindings.forEach(f => {
-        report += `  ⚠ ${f.label}\n`;
-        report += `    Severity: ${f.severity} | Confidence: ${f.confidence}%\n`;
-        report += `    ${f.description}\n`;
-        report += `    Urgency: ${f.urgency}\n\n`;
-      });
+        <div class="section">
+          <div class="section-title">Scan Diagnostics Summary</div>
+          <div class="score-container">
+            <div class="score-number">${result.score}%</div>
+            <div>
+              <span class="badge badge-${result.level}">${result.level} Risk</span>
+              <div style="font-size: 13px; color: #64748B; margin-top: 6px;">Primary Finding: <strong>${result.predictedClass}</strong> (Confidence: ${result.confidence}%)</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Detected Conditions</div>
+          ${
+            detectedFindings.length === 0
+              ? '<div style="color: #10B981; font-weight: bold;">No abnormal dental conditions detected — Healthy teeth & gums!</div>'
+              : detectedFindings
+                  .map(
+                    (f) => `
+              <div class="finding-item">
+                <div class="finding-title">${f.label}</div>
+                <div class="finding-meta">Severity: ${f.severity} | Confidence: ${f.confidence}%</div>
+                <div class="finding-desc">${f.description}</div>
+              </div>
+            `
+                  )
+                  .join("")
+          }
+        </div>
+
+        <div class="section">
+          <div class="section-title">Personalized Recommendations</div>
+          ${result.suggestions
+            .map(
+              (s, i) => `
+            <div style="padding: 6px 0; font-size: 14px; color: #0F172A;">
+              <strong>${i + 1}.</strong> ${s}
+            </div>
+          `
+            )
+            .join("")}
+        </div>
+
+        <div class="footer">
+          This report was generated by the SmileGuard AI Diagnostics system for informational purposes.
+          Please consult a licensed dental professional for clinical verification.
+        </div>
+      </body>
+      </html>
+    `;
+
+    try {
+      if (Platform.OS === "web") {
+        await Print.printAsync({ html: htmlContent });
+      } else {
+        const { uri } = await Print.printToFileAsync({ html: htmlContent });
+        await Sharing.shareAsync(uri, { mimeType: "application/pdf", dialogTitle: "Download Scan PDF Report" });
+      }
+    } catch (error) {
+      console.error("PDF export error:", error);
+      alert("Unable to generate PDF report.");
     }
-
-    report += `───────────────────────────────────────────────\n`;
-    report += `  HEALTHY / CLEAR\n`;
-    report += `───────────────────────────────────────────────\n`;
-    healthyFindings.forEach(f => {
-      report += `  ✅ ${f.label} — Clear (${f.confidence}%)\n`;
-    });
-
-    report += `\n───────────────────────────────────────────────\n`;
-    report += `  RECOMMENDATIONS\n`;
-    report += `───────────────────────────────────────────────\n`;
-    result.suggestions.forEach((s, i) => {
-      report += `  ${i + 1}. ${s}\n`;
-    });
-
-    report += `\n═══════════════════════════════════════════════\n`;
-    report += `  DISCLAIMER: This report is generated by a\n`;
-    report += `  software tool and is NOT a substitute for professional\n`;
-    report += `  dental diagnosis. Please consult a licensed\n`;
-    report += `  dentist for clinical evaluation.\n`;
-    report += `═══════════════════════════════════════════════\n`;
-
-    const blob = new Blob([report], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `SmileGuard_Report_${new Date().toISOString().slice(0, 10)}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
   };
 
   const riskColor =
