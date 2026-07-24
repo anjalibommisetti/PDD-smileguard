@@ -17,6 +17,7 @@ export default function SignupScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [fullName, setFullName] = useState("");
   const [age, setAge] = useState("");
+  const [gender, setGender] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -50,6 +51,7 @@ export default function SignupScreen() {
         data: {
           full_name: fullName,
           age: age,
+          gender: gender,
         },
       },
     });
@@ -69,6 +71,9 @@ export default function SignupScreen() {
       }
       if (age) {
         await AsyncStorage.setItem("user_age", age);
+      }
+      if (gender) {
+        await AsyncStorage.setItem("user_gender", gender);
       }
 
       Alert.alert("Success", "Registration successful! You can now log in to access your portal.");
@@ -106,6 +111,29 @@ export default function SignupScreen() {
             value={age}
             onChangeText={setAge}
           />
+
+          {/* Gender Selector */}
+          <View style={styles.genderRow}>
+            {["Male", "Female", "Other"].map((g) => (
+              <TouchableOpacity
+                key={g}
+                style={[
+                  styles.genderBtn,
+                  gender === g && styles.genderBtnActive,
+                ]}
+                onPress={() => setGender(g)}
+              >
+                <Text
+                  style={[
+                    styles.genderBtnText,
+                    gender === g && styles.genderBtnTextActive,
+                  ]}
+                >
+                  {g}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
 
           <TextInput
             style={styles.input}
@@ -232,5 +260,31 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "500",
     flex: 1,
+  },
+  genderRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  genderBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+  },
+  genderBtnActive: {
+    borderColor: "#0D4B42",
+    backgroundColor: "rgba(134, 241, 212, 0.3)",
+  },
+  genderBtnText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#64748B",
+  },
+  genderBtnTextActive: {
+    color: "#0D4B42",
+    fontWeight: "700",
   },
 });

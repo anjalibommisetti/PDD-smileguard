@@ -29,6 +29,7 @@ export default function ReportScreen() {
   const [user, setUser] = useState<any>(null);
   const [storedName, setStoredName] = useState<string>("");
   const [storedAge, setStoredAge] = useState<string>("");
+  const [storedGender, setStoredGender] = useState<string>("");
   const [assessment, setAssessment] = useState<any>(null);
   const [detailsAssessment, setDetailsAssessment] = useState<any>(null);
   const [trend, setTrend] = useState<{ score: number; date: string }[]>([]);
@@ -42,8 +43,10 @@ export default function ReportScreen() {
     try {
       const localName = await AsyncStorage.getItem("user_full_name");
       const localAge = await AsyncStorage.getItem("user_age");
+      const localGender = await AsyncStorage.getItem("user_gender");
       if (localName) setStoredName(localName);
       if (localAge) setStoredAge(localAge);
+      if (localGender) setStoredGender(localGender);
 
       const {
         data: { session },
@@ -161,7 +164,7 @@ export default function ReportScreen() {
   const detailsAnswers = detailsAssessment?.answers || {};
   const patientName = assessment?.patient_name && !assessment.patient_name.includes("@") && !assessment.patient_name.startsWith("[Scan]") ? assessment.patient_name : fullName;
   const patientAge = storedAge || user?.user_metadata?.age || detailsAnswers.q1 || "—";
-  const patientGender = detailsAnswers.q2 || "—";
+  const patientGender = storedGender || user?.user_metadata?.gender || detailsAnswers.q2 || "—";
   const patientArea = detailsAnswers.q3 || "—";
   const patientEducation = detailsAnswers.q4 || "—";
   const tobaccoUse = detailsAnswers.q23 || "—";
