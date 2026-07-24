@@ -184,7 +184,7 @@ export default function ReportScreen() {
         year: "numeric",
       });
   const riskScore = assessment?.score ?? currentScore;
-  const riskLevel = riskScore >= 70 ? "High" : riskScore >= 35 ? "Medium" : "Low";
+  const riskLevel = riskScore >= 70 ? "Low" : riskScore >= 35 ? "Medium" : "High";
   const riskColor =
     riskLevel === "High" ? "#EF4444" : riskLevel === "Medium" ? "#F59E0B" : "#10B981";
 

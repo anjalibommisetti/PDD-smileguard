@@ -77,8 +77,8 @@ export default function ResultsScreen() {
     }
   };
 
-  // Ensure accurate risk level based on numerical score (score >= 70 is High, score >= 35 is Medium, score < 35 is Low)
-  const displayLevel = score >= 70 ? "High" : score >= 35 ? "Medium" : "Low";
+  // Score mapping: score >= 70 is Low Risk (Green), score >= 35 is Medium Risk (Orange), score < 35 is High Risk (Red)
+  const displayLevel = score >= 70 ? "Low" : score >= 35 ? "Medium" : "High";
   const heroColor = displayLevel === "High" ? "#EF4444" : displayLevel === "Medium" ? "#F59E0B" : "#10B981";
 
   if (loading) {

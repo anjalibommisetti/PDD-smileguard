@@ -102,8 +102,7 @@ function PatientDashboardMain({ setActiveTab, isDarkMode }: { setActiveTab: (t: 
 
         if (assessment) {
           const rawScore = assessment.score ?? 0;
-          const computedLvl = rawScore >= 70 ? "High" : rawScore >= 35 ? "Medium" : "Low";
-          const finalLvl = (assessment.level === "Low" && rawScore >= 35) ? "Medium" : (assessment.level || computedLvl);
+          const finalLvl = rawScore >= 70 ? "Low" : rawScore >= 35 ? "Medium" : "High";
 
           setRiskScore(rawScore);
           setRiskLevel(finalLvl);

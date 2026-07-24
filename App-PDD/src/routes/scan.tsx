@@ -843,7 +843,7 @@ export default function ScanScreen() {
         score: analysis.score,
         level: analysis.level,
         patient_name: `[Scan] ${userName}`,
-        answers: { predictedClass: analysis.predictedClass, imageUrl: typeof imageFile === "string" ? imageFile : null },
+        answers: { predictedClass: analysis.predictedClass, imageUrl: imageUri },
         created_at: new Date().toISOString(),
       });
       setAutoSaved(true);
