@@ -34,7 +34,7 @@ import ProfileScreen from "./profile";
 import HistoryScreen from "./history";
 import AssessmentScreen from "./assessment";
 
-function PatientDashboardMain({ setActiveTab }: { setActiveTab: (t: string) => void }) {
+function PatientDashboardMain({ setActiveTab, isDarkMode }: { setActiveTab: (t: string) => void; isDarkMode?: boolean }) {
   const [userName, setUserName] = useState("User");
   const [initials, setInitials] = useState("U");
   const [riskLevel, setRiskLevel] = useState("Low");
@@ -148,9 +148,9 @@ function PatientDashboardMain({ setActiveTab }: { setActiveTab: (t: string) => v
   };
 
   const getRiskColor = (level: string) => {
-    if (level === "High") return { text: "#EF4444", bg: "#FEE2E2" };
-    if (level === "Medium") return { text: "#F59E0B", bg: "#FEF3C7" };
-    return { text: "#10B981", bg: "#D1FAE5" };
+    if (level === "High") return { text: "#EF4444", bg: "rgba(239,68,68,0.15)" };
+    if (level === "Medium") return { text: "#F59E0B", bg: "rgba(245,158,11,0.15)" };
+    return { text: "#10B981", bg: "rgba(16,185,129,0.15)" };
   };
   const getRiskBarColor = (level: string) => {
     if (level === "High") return "#EF4444";
@@ -158,30 +158,35 @@ function PatientDashboardMain({ setActiveTab }: { setActiveTab: (t: string) => v
     return "#10B981";
   };
 
+  const cardBg = isDarkMode ? "#1E293B" : "#FFFFFF";
+  const titleColor = isDarkMode ? "#F8FAFC" : "#0F172A";
+  const subTextColor = isDarkMode ? "#94A3B8" : "#64748B";
+  const borderColor = isDarkMode ? "#334155" : "#E2E8F0";
+
   return (
-    <ScrollView style={styles.dashboardContainer} contentContainerStyle={{ paddingBottom: 40 }}>
+    <ScrollView style={[styles.dashboardContainer, { backgroundColor: isDarkMode ? "#0B0F17" : "#F8FAFC" }]} contentContainerStyle={{ paddingBottom: 40 }}>
       {/* Header */}
       <View style={styles.headerRow}>
         <View style={styles.welcomeTextContainer}>
-          <Text style={styles.welcomeTitle}>Welcome back, {userName}</Text>
-          <Text style={styles.welcomeSubtitle}>Here is a summary of your oral health.</Text>
+          <Text style={[styles.welcomeTitle, { color: titleColor }]}>Welcome back, {userName}</Text>
+          <Text style={[styles.welcomeSubtitle, { color: subTextColor }]}>Here is a summary of your oral health.</Text>
         </View>
       </View>
 
       {/* Main Risk Card */}
-      <View style={styles.card}>
+      <View style={[styles.card, { backgroundColor: cardBg, borderColor, borderWidth: isDarkMode ? 1 : 0 }]}>
         <View style={styles.riskCardContent}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.cardSectionTitle}>CURRENT ORAL HEALTH STATUS</Text>
+            <Text style={[styles.cardSectionTitle, { color: subTextColor }]}>CURRENT ORAL HEALTH STATUS</Text>
             <View style={styles.riskScoreRow}>
-              <Text style={styles.riskScoreText}>{riskScore}%</Text>
+              <Text style={[styles.riskScoreText, { color: titleColor }]}>{riskScore}%</Text>
               <View style={[styles.riskBadge, { backgroundColor: getRiskColor(riskLevel).bg }]}>
                 <Text style={[styles.riskBadgeText, { color: getRiskColor(riskLevel).text }]}>
                   {riskLevel} Risk
                 </Text>
               </View>
             </View>
-            <Text style={styles.assessedText}>Last assessed on {assessedAt || "Never"}</Text>
+            <Text style={[styles.assessedText, { color: subTextColor }]}>Last assessed on {assessedAt || "Never"}</Text>
           </View>
         </View>
         <View style={styles.progressBarBg}>
@@ -193,16 +198,16 @@ function PatientDashboardMain({ setActiveTab }: { setActiveTab: (t: string) => v
 
       <View style={styles.twoColGrid}>
         {/* Recent Activity */}
-        <View style={[styles.card, { flex: 1 }]}>
+        <View style={[styles.card, { flex: 1, backgroundColor: cardBg, borderColor, borderWidth: isDarkMode ? 1 : 0 }]}>
           <View style={styles.cardHeader}>
             <Activity size={24} color="#3B82F6" />
-            <Text style={styles.cardTitle}>Recent Predictions</Text>
+            <Text style={[styles.cardTitle, { color: titleColor }]}>Recent Predictions</Text>
           </View>
           {activities.length === 0 ? (
-            <Text style={styles.emptyText}>No recent activity.</Text>
+            <Text style={[styles.emptyText, { color: subTextColor }]}>No recent activity.</Text>
           ) : (
             activities.map((act) => (
-              <View key={act.id} style={styles.activityItem}>
+              <View key={act.id} style={[styles.activityItem, { borderBottomColor: borderColor }]}>
                 <View style={styles.activityRow}>
                   <View style={[styles.activityIconBg, { backgroundColor: getRiskColor(act.level).bg, overflow: "hidden" }]}>
                     {act.isScan && act.imageUrl ? (
@@ -212,10 +217,10 @@ function PatientDashboardMain({ setActiveTab }: { setActiveTab: (t: string) => v
                     )}
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.activityTitle}>{act.title}</Text>
-                    <Text style={styles.activitySubtitle}>{act.subtitle}</Text>
+                    <Text style={[styles.activityTitle, { color: titleColor }]}>{act.title}</Text>
+                    <Text style={[styles.activitySubtitle, { color: subTextColor }]}>{act.subtitle}</Text>
                   </View>
-                  <Text style={styles.activityTime}>{act.time}</Text>
+                  <Text style={[styles.activityTime, { color: subTextColor }]}>{act.time}</Text>
                 </View>
               </View>
             ))
@@ -231,9 +236,22 @@ export default function PatientPortal() {
   const route = useRoute<any>();
   const [activeTab, setActiveTab] = useState("Dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(Platform.OS === "web"); // default open on web, closed on mobile
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  const checkTheme = async () => {
+    const val = await AsyncStorage.getItem("@smileguard_dark_mode");
+    if (val !== null) setIsDarkMode(val === "true");
+  };
+
+  useEffect(() => {
+    checkTheme();
+    const interval = setInterval(checkTheme, 400);
+    return () => clearInterval(interval);
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
+      checkTheme();
       if (route?.params?.tab) {
         setActiveTab(route.params.tab);
         navigation.setParams({ tab: undefined });
@@ -254,34 +272,47 @@ export default function PatientPortal() {
     { id: "Profile", label: "Profile", icon: User },
   ];
 
+  const bgWrapper = isDarkMode ? "#0B0F17" : "#F8FAFC";
+  const bgSidebar = isDarkMode ? "#0F172A" : "#FFFFFF";
+  const bgTopBar = isDarkMode ? "#0F172A" : "#FFFFFF";
+  const borderColor = isDarkMode ? "#1E293B" : "#E2E8F0";
+  const titleColor = isDarkMode ? "#F8FAFC" : "#0F172A";
+  const subTextColor = isDarkMode ? "#94A3B8" : "#64748B";
+
   return (
-    <SafeAreaView style={styles.mainWrapper}>
+    <SafeAreaView style={[styles.mainWrapper, { backgroundColor: bgWrapper }]}>
       <View style={styles.layoutRow}>
         {/* Sidebar */}
         {sidebarOpen && Platform.OS === "web" && (
-          <View style={styles.sidebar}>
-            <View style={styles.sidebarHeader}>
+          <View style={[styles.sidebar, { backgroundColor: bgSidebar, borderColor }]}>
+            <View style={[styles.sidebarHeader, { borderColor }]}>
               <View style={styles.logoBadge}>
                 <Activity size={20} color="#fff" />
               </View>
-              <Text style={styles.sidebarTitle}>SmileGuard</Text>
+              <Text style={[styles.sidebarTitle, { color: titleColor }]}>SmileGuard</Text>
             </View>
 
             <ScrollView style={styles.navMenu}>
-              <Text style={styles.navSectionLabel}>PATIENT PORTAL</Text>
+              <Text style={[styles.navSectionLabel, { color: subTextColor }]}>PATIENT PORTAL</Text>
               {navItems.map((item) => {
                 const isActive = activeTab === item.id;
                 return (
                   <TouchableOpacity
                     key={item.id}
-                    style={[styles.navItem, isActive && styles.navItemActive]}
+                    style={[
+                      styles.navItem,
+                      isActive && { backgroundColor: isDarkMode ? "#1E293B" : "#F0FDFA" },
+                    ]}
                     onPress={() => {
                       setActiveTab(item.id);
                       if (Platform.OS !== "web") setSidebarOpen(false);
                     }}
                   >
-                    <item.icon size={20} color={isActive ? "#0D9488" : "#64748B"} />
-                    <Text style={[styles.navItemText, isActive && styles.navItemTextActive]}>
+                    <item.icon size={20} color={isActive ? (isDarkMode ? "#38BDF8" : "#0D9488") : subTextColor} />
+                    <Text style={[
+                      styles.navItemText,
+                      { color: isActive ? (isDarkMode ? "#38BDF8" : "#0D9488") : subTextColor, fontWeight: isActive ? "bold" : "500" }
+                    ]}>
                       {item.label}
                     </Text>
                   </TouchableOpacity>
@@ -289,7 +320,7 @@ export default function PatientPortal() {
               })}
             </ScrollView>
 
-            <View style={styles.sidebarFooter}>
+            <View style={[styles.sidebarFooter, { borderColor }]}>
               <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
                 <LogOut size={20} color="#DC2626" />
                 <Text style={styles.logoutBtnText}>Logout</Text>
@@ -299,25 +330,25 @@ export default function PatientPortal() {
         )}
 
         {/* Content Area */}
-        <View style={styles.contentArea}>
-          <View style={styles.topBar}>
+        <View style={[styles.contentArea, { backgroundColor: bgWrapper }]}>
+          <View style={[styles.topBar, { backgroundColor: bgTopBar, borderColor }]}>
             <View style={{ flexDirection: "row", alignItems: "center" }}>
               {Platform.OS === "web" && (
                 <TouchableOpacity style={styles.menuBtn} onPress={() => setSidebarOpen(!sidebarOpen)}>
-                  <Menu size={24} color="#64748B" />
+                  <Menu size={24} color={subTextColor} />
                 </TouchableOpacity>
               )}
-              <Text style={styles.topBarTitle}>{activeTab}</Text>
+              <Text style={[styles.topBarTitle, { color: titleColor }]}>{activeTab}</Text>
             </View>
             <View style={styles.topBarRight}>
               <TouchableOpacity onPress={() => navigation.navigate("Alerts")}>
-                <Bell size={24} color="#64748B" />
+                <Bell size={24} color={subTextColor} />
               </TouchableOpacity>
             </View>
           </View>
 
           <View style={styles.mainView}>
-            {activeTab === "Dashboard" && <PatientDashboardMain setActiveTab={setActiveTab} />}
+            {activeTab === "Dashboard" && <PatientDashboardMain setActiveTab={setActiveTab} isDarkMode={isDarkMode} />}
             {activeTab === "Assessment" && <AssessmentScreen />}
             {activeTab === "Scan" && <ScanScreen />}
             {activeTab === "History" && <HistoryScreen />}
@@ -326,14 +357,14 @@ export default function PatientPortal() {
 
           {/* Bottom Navigation for Mobile */}
           {Platform.OS !== "web" && (
-            <View style={styles.bottomNav}>
+            <View style={[styles.bottomNav, { backgroundColor: bgSidebar, borderColor }]}>
               <TouchableOpacity style={styles.bottomNavItem} onPress={() => setActiveTab("Dashboard")}>
-                <LayoutDashboard size={22} color={activeTab === "Dashboard" ? "#0D9488" : "#64748B"} />
-                <Text style={[styles.bottomNavText, activeTab === "Dashboard" && styles.bottomNavTextActive]}>Home</Text>
+                <LayoutDashboard size={22} color={activeTab === "Dashboard" ? (isDarkMode ? "#38BDF8" : "#0D9488") : subTextColor} />
+                <Text style={[styles.bottomNavText, { color: subTextColor }, activeTab === "Dashboard" && { color: isDarkMode ? "#38BDF8" : "#0D9488", fontWeight: "bold" }]}>Home</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.bottomNavItem} onPress={() => setActiveTab("Assessment")}>
-                <FileText size={22} color={activeTab === "Assessment" ? "#0D9488" : "#64748B"} />
-                <Text style={[styles.bottomNavText, activeTab === "Assessment" && styles.bottomNavTextActive]}>Assessment</Text>
+                <FileText size={22} color={activeTab === "Assessment" ? (isDarkMode ? "#38BDF8" : "#0D9488") : subTextColor} />
+                <Text style={[styles.bottomNavText, { color: subTextColor }, activeTab === "Assessment" && { color: isDarkMode ? "#38BDF8" : "#0D9488", fontWeight: "bold" }]}>Assessment</Text>
               </TouchableOpacity>
               
               <View style={styles.scanBtnContainer}>
@@ -343,12 +374,12 @@ export default function PatientPortal() {
               </View>
 
               <TouchableOpacity style={styles.bottomNavItem} onPress={() => setActiveTab("History")}>
-                <Activity size={22} color={activeTab === "History" ? "#0D9488" : "#64748B"} />
-                <Text style={[styles.bottomNavText, activeTab === "History" && styles.bottomNavTextActive]}>History</Text>
+                <Activity size={22} color={activeTab === "History" ? (isDarkMode ? "#38BDF8" : "#0D9488") : subTextColor} />
+                <Text style={[styles.bottomNavText, { color: subTextColor }, activeTab === "History" && { color: isDarkMode ? "#38BDF8" : "#0D9488", fontWeight: "bold" }]}>History</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.bottomNavItem} onPress={() => setActiveTab("Profile")}>
-                <User size={22} color={activeTab === "Profile" ? "#0D9488" : "#64748B"} />
-                <Text style={[styles.bottomNavText, activeTab === "Profile" && styles.bottomNavTextActive]}>Profile</Text>
+                <User size={22} color={activeTab === "Profile" ? (isDarkMode ? "#38BDF8" : "#0D9488") : subTextColor} />
+                <Text style={[styles.bottomNavText, { color: subTextColor }, activeTab === "Profile" && { color: isDarkMode ? "#38BDF8" : "#0D9488", fontWeight: "bold" }]}>Profile</Text>
               </TouchableOpacity>
             </View>
           )}
