@@ -236,6 +236,7 @@ export default function PatientPortal() {
     useCallback(() => {
       if (route?.params?.tab) {
         setActiveTab(route.params.tab);
+        navigation.setParams({ tab: undefined });
       }
     }, [route?.params?.tab])
   );

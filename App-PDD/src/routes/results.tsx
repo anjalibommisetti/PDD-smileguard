@@ -90,7 +90,7 @@ export default function ResultsScreen() {
 
   return (
     <PhoneShell showNav={false}>
-      <ScreenHeader title="Risk Results" subtitle="Analysis complete" back="Dashboard" />
+      <ScreenHeader title="Risk Results" subtitle="Analysis complete" showBack={true} />
 
       <ScrollView
         style={{ flex: 1 }}
@@ -222,6 +222,18 @@ export default function ResultsScreen() {
             </View>
           </View>
         )}
+
+        {/* Actions */}
+        <View style={styles.actions}>
+          <TouchableOpacity
+            style={styles.btnSecondary}
+            activeOpacity={0.8}
+            onPress={() => navigation.navigate("Report", { id: assessmentId, score: currentScore })}
+          >
+            <Feather name="file-text" size={16} color="#0F172A" />
+            <Text style={styles.btnSecondaryText}>Full Report</Text>
+          </TouchableOpacity>
+        </View>
 
 
       </ScrollView>
