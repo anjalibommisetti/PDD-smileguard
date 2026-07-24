@@ -383,12 +383,14 @@ export default function ProfileScreen() {
 
         {/* Weekly Streak Maintainer */}
         {streakEnabled && (
-          <View style={[styles.streakCard, { backgroundColor: cardBg, borderColor, borderWidth: isDarkMode ? 1 : 0 }]}>
+          <View style={[styles.streakCard, { backgroundColor: isDarkMode ? "#1E293B" : "#F5F3FF", borderColor: isDarkMode ? "#334155" : "#DDD6FE", borderWidth: 1 }]}>
             <View style={styles.streakTop}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-                <Feather name="zap" size={28} color="#7C3AED" />
+                <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: "rgba(124, 58, 237, 0.12)", alignItems: "center", justifyContent: "center" }}>
+                  <Feather name="zap" size={24} color="#7C3AED" />
+                </View>
                 <View>
-                  <Text style={[styles.streakDays, { color: textColor }]}>
+                  <Text style={[styles.streakDays, { color: isDarkMode ? "#F8FAFC" : "#0F172A" }]}>
                     {weeklyStreak} {weeklyStreak === 1 ? t("week", language) : t("weeks", language)}
                   </Text>
                   <Text style={[styles.streakLabel, { color: subTextColor }]}>{t("weeklyStreak", language)}</Text>
@@ -396,27 +398,37 @@ export default function ProfileScreen() {
               </View>
             </View>
 
-            {/* Streak pills grid for current week */}
+            {/* Streak pills grid for current week with vibrant day highlights */}
             <View style={styles.streakGrid}>
               {Array.from({ length: 7 }).map((_, i) => {
                 const dayNames = ["M", "T", "W", "T", "F", "S", "S"];
                 const active = i < daysInCurrentWeek;
                 return (
-                  <View key={i} style={{ flex: 1, alignItems: "center", gap: 4 }}>
+                  <View key={i} style={{ flex: 1, alignItems: "center", gap: 6 }}>
                     <View
                       style={[
                         styles.streakDay,
-                        active ? styles.streakDayActive : styles.streakDayInactive,
+                        active
+                          ? { backgroundColor: "#7C3AED", elevation: 2, shadowColor: "#7C3AED", shadowOpacity: 0.3, shadowRadius: 4 }
+                          : { backgroundColor: isDarkMode ? "#334155" : "#E2E8F0" },
                       ]}
-                    />
-                    <Text style={[styles.dayLabelText, { color: subTextColor }]}>{dayNames[i]}</Text>
+                    >
+                      {active ? (
+                        <Feather name="check" size={14} color="#FFFFFF" />
+                      ) : (
+                        <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: isDarkMode ? "#64748B" : "#CBD5E1" }} />
+                      )}
+                    </View>
+                    <Text style={[styles.dayLabelText, { color: active ? "#7C3AED" : subTextColor, fontWeight: active ? "800" : "600" }]}>
+                      {dayNames[i]}
+                    </Text>
                   </View>
                 );
               })}
             </View>
 
             {/* Status indicator */}
-            <View style={[styles.maintainBtn, styles.maintainBtnActive]}>
+            <View style={[styles.maintainBtn, { backgroundColor: isDarkMode ? "#334155" : "#FFFFFF", borderWidth: 1, borderColor: isDarkMode ? "#475569" : "#EDE9FE" }]}>
               <Feather name="check-circle" size={18} color="#7C3AED" />
               <Text style={styles.maintainBtnTextActive}>
                 {t("streakActive", language)} · {t("week", language)} {weeklyStreak} (Day {daysInCurrentWeek}/7) 🔥
@@ -727,19 +739,14 @@ const styles = StyleSheet.create({
   },
   streakDay: {
     width: "100%",
-    height: 32,
-    borderRadius: 8,
+    height: 38,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
   },
   dayLabelText: {
-    fontSize: 10,
-    fontWeight: "600",
-    color: "rgba(124, 58, 237, 0.7)",
-  },
-  streakDayActive: {
-    backgroundColor: "#FFFFFF",
-  },
-  streakDayInactive: {
-    backgroundColor: "rgba(255, 255, 255, 0.3)",
+    fontSize: 11,
+    fontWeight: "700",
   },
   maintainBtn: {
     marginTop: 16,

@@ -131,7 +131,10 @@ export default function ResultsScreen() {
           </View>
           <View style={styles.scoreWrap}>
             <Text style={styles.scoreMain}>{score}</Text>
-            <Text style={styles.scoreUnit}>%</Text>
+            <Text style={styles.scoreUnit}>% Risk</Text>
+            <Text style={[styles.scoreUnit, { marginLeft: "auto", fontSize: 13, color: "rgba(255, 255, 255, 0.9)" }]}>
+              Health Score: {100 - score}/100
+            </Text>
           </View>
           <View style={styles.scoreBarBg}>
             <View style={[styles.scoreBarFill, { width: `${score}%` }]} />

@@ -20,6 +20,7 @@ export default function HistoryScreen() {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
 
   // Refresh every time this screen is focused (navigated to)
   useFocusEffect(
@@ -191,8 +192,13 @@ export default function HistoryScreen() {
 
                   {/* Icon box or Image */}
                   <View style={[styles.iconBox, { backgroundColor: c.bg, overflow: "hidden" }]}>
-                    {it.isScan && it.imageUrl ? (
-                      <Image source={{ uri: it.imageUrl }} style={{ width: 48, height: 48 }} />
+                    {it.isScan && it.imageUrl && !imageErrors[it.id] ? (
+                      <Image
+                        source={{ uri: it.imageUrl }}
+                        style={{ width: 48, height: 48, borderRadius: 12 }}
+                        resizeMode="cover"
+                        onError={() => setImageErrors((prev) => ({ ...prev, [it.id]: true }))}
+                      />
                     ) : (
                       <Text style={{ fontSize: 20 }}>{it.isScan ? "🦷" : "📋"}</Text>
                     )}
@@ -213,12 +219,12 @@ export default function HistoryScreen() {
                       {it.displayDate} · {it.displayTime}
                     </Text>
                     <View
-                      style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 }}
+                      style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4, flexWrap: "wrap" }}
                     >
-                      <Text style={[styles.scoreText, { color: c.fg }]}>{it.score ?? 0}%</Text>
+                      <Text style={[styles.scoreText, { color: c.fg }]}>{it.score ?? 0}% Risk</Text>
                       <View style={[styles.badge, { backgroundColor: c.bg }]}>
                         <Text style={[styles.badgeText, { color: c.fg }]}>
-                          {!isCompleted ? "⏳ Prediction Risk" : "Prediction Risk"}
+                          {!isCompleted ? "⏳ Prediction Risk" : `Prediction Risk (${100 - (it.score ?? 0)}/100 Health)`}
                         </Text>
                       </View>
                     </View>

@@ -516,6 +516,35 @@ function ConfidenceBar({ confidence, color, delay = 0 }: { confidence: number; c
   );
 }
 
+// ─── Base64 Thumbnail Generator for Persistent History ──────────────────────
+async function createBase64Thumbnail(uri: string, imageFile?: File | string | null): Promise<string> {
+  if (typeof imageFile === "string" && imageFile.startsWith("data:image")) {
+    return imageFile;
+  }
+  if (Platform.OS === "web" && typeof window !== "undefined") {
+    return new Promise((resolve) => {
+      const img = new window.Image();
+      img.crossOrigin = "anonymous";
+      img.src = uri;
+      img.onload = () => {
+        try {
+          const canvas = window.document.createElement("canvas");
+          const ctx = canvas.getContext("2d");
+          if (!ctx) return resolve(uri);
+          canvas.width = 160;
+          canvas.height = 160;
+          ctx.drawImage(img, 0, 0, 160, 160);
+          resolve(canvas.toDataURL("image/jpeg", 0.75));
+        } catch (e) {
+          resolve(uri);
+        }
+      };
+      img.onerror = () => resolve(uri);
+    });
+  }
+  return uri;
+}
+
 export default function ScanScreen() {
   const navigation = useNavigation<any>();
   const [imageUri, setImageUri] = useState<string | null>(null);
@@ -814,7 +843,7 @@ export default function ScanScreen() {
     setResult(analysis);
     setAnalyzing(false);
 
-    // Auto-save to Supabase history
+    // Auto-save to Supabase history with persistent base64 thumbnail
     try {
       const {
         data: { session },
@@ -822,12 +851,13 @@ export default function ScanScreen() {
       const userId = session?.user?.id ?? null;
       const userName =
         session?.user?.user_metadata?.full_name || session?.user?.email?.split("@")[0] || "User";
+      const thumbUrl = await createBase64Thumbnail(imageUri, imageFile);
       await supabase.from("assessments").insert({
         user_id: userId,
         score: analysis.score,
         level: analysis.level,
         patient_name: `[Scan] ${userName}`,
-        answers: { predictedClass: analysis.predictedClass, imageUrl: imageUri },
+        answers: { predictedClass: analysis.predictedClass, imageUrl: thumbUrl },
         created_at: new Date().toISOString(),
       });
       setAutoSaved(true);
@@ -1220,12 +1250,16 @@ export default function ScanScreen() {
                         <Text style={[s.scoreNum, { color: riskColor }]}>{healthScore}</Text>
                         <Text style={[s.scoreUnit, { color: riskColor }]}>/100</Text>
                       </View>
+                      <View style={{ marginTop: 4, flexDirection: "row", alignItems: "center", gap: 6 }}>
+                        <Text style={{ fontSize: 12, fontWeight: "700", color: "#64748B" }}>Prediction Risk:</Text>
+                        <Text style={{ fontSize: 13, fontWeight: "800", color: riskColor }}>{result.score}%</Text>
+                      </View>
                     </View>
                     <View style={s.scoreRightCol}>
                       <View style={[s.riskBadge, { backgroundColor: riskColor + "18", borderColor: riskColor + "40" }]}>
                         <View style={[s.riskDot, { backgroundColor: riskColor }]} />
                         <MaterialCommunityIcons name="tooth" size={16} color={riskColor} style={{ marginRight: 4 }} />
-                        <Text style={[s.riskBadgeText, { color: riskColor }]}>{`🦷 ${result.level} Risk`}</Text>
+                        <Text style={[s.riskBadgeText, { color: riskColor }]}>{`🦷 ${result.level} Risk (${result.score}%)`}</Text>
                       </View>
                       <Text style={s.confText}>Confidence: {result.confidence}%</Text>
                     </View>
@@ -1249,10 +1283,10 @@ export default function ScanScreen() {
 
                   <Text style={s.scoreDesc}>
                     {result.level === "Low" || result.level === "Healthy" || result.level === "Minimal"
-                      ? "✓ Your teeth look healthy! Maintain your current oral hygiene routine."
+                      ? `✓ Your teeth look healthy! (Health Score: ${healthScore}/100, Risk: ${result.score}%). Maintain your current oral hygiene routine.`
                       : result.level === "Medium"
-                        ? "⚠ Moderate risk detected. Some areas need attention or professional cleaning."
-                        : "🚨 High risk detected. Please consult a dentist as soon as possible."}
+                        ? `⚠ Moderate risk detected (${result.score}% Risk, Health Score: ${healthScore}/100). Some areas need attention or professional cleaning.`
+                        : `🚨 High risk detected (${result.score}% Risk, Health Score: ${healthScore}/100). Please consult a dentist as soon as possible.`}
                   </Text>
                 </View>
               </View>
