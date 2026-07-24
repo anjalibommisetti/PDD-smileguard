@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   StyleSheet,
@@ -9,20 +9,35 @@ import {
   Dimensions,
   useWindowDimensions,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 interface PhoneShellProps {
   children: React.ReactNode;
   showNav?: boolean;
+  isDarkMode?: boolean;
 }
 
-export const PhoneShell = ({ children, showNav = true }: PhoneShellProps) => {
+export const PhoneShell = ({ children, showNav = true, isDarkMode: customDark }: PhoneShellProps) => {
   const { width } = useWindowDimensions();
-  const isDesktop = Platform.OS === "web" && width >= 768;
+  const [dark, setDark] = useState<boolean>(customDark ?? false);
+
+  useEffect(() => {
+    if (customDark !== undefined) {
+      setDark(customDark);
+    } else {
+      AsyncStorage.getItem("@smileguard_dark_mode").then((val) => {
+        if (val !== null) setDark(val === "true");
+      });
+    }
+  }, [customDark]);
+
+  const bgRoot = dark ? "#0F172A" : Platform.OS === "web" ? "#E2E8F0" : "#F8FAFC";
+  const bgContainer = dark ? "#0F172A" : "#F8FAFC";
 
   return (
-    <View style={styles.root}>
-      <SafeAreaView style={[styles.safeArea, Platform.OS === "web" && styles.webSafeArea]}>
-        <View style={styles.container}>{children}</View>
+    <View style={[styles.root, { backgroundColor: bgRoot }]}>
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: bgContainer }, Platform.OS === "web" && styles.webSafeArea]}>
+        <View style={[styles.container, { backgroundColor: bgContainer }]}>{children}</View>
       </SafeAreaView>
     </View>
   );
@@ -43,8 +58,8 @@ const styles = StyleSheet.create({
   },
   webSafeArea: {
     width: "100%",
-    maxWidth: "100%", // Changed to 100% for full desktop layout
-    height: "100%", // Critical for web visibility
+    maxWidth: "100%",
+    height: "100%",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,

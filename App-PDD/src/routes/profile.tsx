@@ -20,6 +20,8 @@ import { Feather } from "@expo/vector-icons";
 import { supabase } from "../lib/supabase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ImagePicker from "expo-image-picker";
+import * as Updates from "expo-updates";
+import { t } from "../lib/i18n";
 
 const badges = [
   { name: "Healthy Habits", icon: "star", tone: "mint" },
@@ -250,6 +252,36 @@ export default function ProfileScreen() {
     Alert.alert("Theme Changed", `Switched to ${nextVal ? "Dark Mode 🌙" : "Light Mode ☀️"}`);
   };
 
+  const handleManualCheckUpdate = async () => {
+    if (Platform.OS === "web") {
+      Alert.alert("Web Version", "You are using the Web version. Page updates automatically on refresh!");
+      return;
+    }
+    if (__DEV__) {
+      Alert.alert(
+        "Expo Dev Mode",
+        "You are currently testing via Expo Go or Dev mode. Re-run 'npx expo start' or reload in Expo Go to get the latest code changes!"
+      );
+      return;
+    }
+    try {
+      Alert.alert("Checking Updates...", "Checking server for new app updates...");
+      const update = await Updates.checkForUpdateAsync();
+      if (update.isAvailable) {
+        await Updates.fetchUpdateAsync();
+        Alert.alert(
+          "Update Downloaded! 🚀",
+          "New updates installed. Reloading app now...",
+          [{ text: "OK", onPress: () => Updates.reloadAsync() }]
+        );
+      } else {
+        Alert.alert("Up to Date ✅", "Your app is running the latest published build version (1.0.0)!");
+      }
+    } catch (e: any) {
+      Alert.alert("Check Failed", e?.message || "Unable to check updates at this moment.");
+    }
+  };
+
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
@@ -259,45 +291,11 @@ export default function ProfileScreen() {
 
   if (loading) {
     return (
-      <PhoneShell>
+      <PhoneShell isDarkMode={isDarkMode}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#157A6E" />
         </View>
-  
-      <Modal visible={isEditing} animationType="slide" transparent>
-        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.modalBg}>
-          <View style={styles.modalCard}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Edit Profile</Text>
-              <TouchableOpacity onPress={() => setIsEditing(false)}>
-                <Feather name="x" size={24} color="#64748B" />
-              </TouchableOpacity>
-            </View>
-            <ScrollView style={styles.modalBody}>
-              <Text style={styles.inputLabel}>Full Name</Text>
-              <TextInput style={styles.inputField} value={editName} onChangeText={setEditName} placeholder="Enter your full name" />
-              
-              <Text style={styles.inputLabel}>Phone Number</Text>
-              <TextInput style={styles.inputField} value={editPhone} onChangeText={setEditPhone} placeholder="e.g. +1 234 567 8900" keyboardType="phone-pad" />
-              
-              <Text style={styles.inputLabel}>Date of Birth</Text>
-              <TextInput style={styles.inputField} value={editDob} onChangeText={setEditDob} placeholder="DD/MM/YYYY" />
-              
-              <Text style={styles.inputLabel}>Gender</Text>
-              <TextInput style={styles.inputField} value={editGender} onChangeText={setEditGender} placeholder="Male / Female / Other" />
-              
-              <Text style={styles.inputLabel}>New Password (leave blank to keep current)</Text>
-              <TextInput style={styles.inputField} value={editPassword} onChangeText={setEditPassword} placeholder="Enter new password" secureTextEntry />
-              
-              <TouchableOpacity style={styles.saveBtn} onPress={handleSaveProfile} disabled={savingProfile}>
-                {savingProfile ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveBtnText}>Save Changes</Text>}
-              </TouchableOpacity>
-            </ScrollView>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
-    </PhoneShell>
-
+      </PhoneShell>
     );
   }
 
@@ -318,12 +316,18 @@ export default function ProfileScreen() {
         ? "rgba(245,158,11,0.1)"
         : "rgba(16,185,129,0.1)";
 
+  const cardBg = isDarkMode ? "#1E293B" : "#FFFFFF";
+  const textColor = isDarkMode ? "#F8FAFC" : "#0F172A";
+  const subTextColor = isDarkMode ? "#94A3B8" : "#64748B";
+  const borderColor = isDarkMode ? "#334155" : "#E2E8F0";
+  const inputBg = isDarkMode ? "#0F172A" : "#F8FAFC";
+
   return (
-    <PhoneShell>
-      <ScreenHeader title="Profile" />
+    <PhoneShell isDarkMode={isDarkMode}>
+      <ScreenHeader title={t("profile", language)} />
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.userCard}>
+        <View style={[styles.userCard, { backgroundColor: cardBg, borderColor, borderWidth: isDarkMode ? 1 : 0 }]}>
           <TouchableOpacity style={styles.avatar} onPress={pickImage} activeOpacity={0.8}>
             {profilePhoto ? (
               <Image source={{ uri: profilePhoto }} style={{ width: 64, height: 64, borderRadius: 16 }} />
@@ -335,11 +339,11 @@ export default function ProfileScreen() {
             </View>
           </TouchableOpacity>
           <View style={{ flex: 1 }}>
-            <Text style={styles.userName}>{fullName}</Text>
-            <Text style={styles.userEmail}>{user?.email}</Text>
-            {user?.user_metadata?.phone ? <Text style={styles.userEmail}>📞 {user.user_metadata.phone}</Text> : null}
+            <Text style={[styles.userName, { color: textColor }]}>{fullName}</Text>
+            <Text style={[styles.userEmail, { color: subTextColor }]}>{user?.email}</Text>
+            {user?.user_metadata?.phone ? <Text style={[styles.userEmail, { color: subTextColor }]}>📞 {user.user_metadata.phone}</Text> : null}
             {user?.user_metadata?.age || user?.user_metadata?.dob || user?.user_metadata?.gender ? (
-              <Text style={styles.userEmail}>
+              <Text style={[styles.userEmail, { color: subTextColor }]}>
                 👤 {user?.user_metadata?.gender ? user.user_metadata.gender + " · " : ""}
                 {user?.user_metadata?.age ? `${user.user_metadata.age} yrs · ` : ""}
                 {user?.user_metadata?.dob || ""}
@@ -347,8 +351,8 @@ export default function ProfileScreen() {
             ) : null}
 
             <View style={{ flexDirection: "row", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
-              <View style={styles.roleBadge}>
-                <Text style={styles.roleText}>{role}</Text>
+              <View style={[styles.roleBadge, { backgroundColor: isDarkMode ? "#334155" : "#F1F5F9" }]}>
+                <Text style={[styles.roleText, { color: isDarkMode ? "#38BDF8" : "#0D4B42" }]}>{t(role.toLowerCase(), language)}</Text>
               </View>
               {latestLevel && (
                 <View style={[styles.roleBadge, { backgroundColor: riskBg }]}>
@@ -363,15 +367,15 @@ export default function ProfileScreen() {
 
         {/* Weekly Streak Maintainer */}
         {streakEnabled && (
-          <View style={styles.streakCard}>
+          <View style={[styles.streakCard, { backgroundColor: cardBg, borderColor, borderWidth: isDarkMode ? 1 : 0 }]}>
             <View style={styles.streakTop}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
                 <Feather name="zap" size={28} color="#7C3AED" />
                 <View>
-                  <Text style={styles.streakDays}>
-                    {weeklyStreak} {weeklyStreak === 1 ? "week" : "weeks"}
+                  <Text style={[styles.streakDays, { color: textColor }]}>
+                    {weeklyStreak} {weeklyStreak === 1 ? t("week", language) : t("weeks", language)}
                   </Text>
-                  <Text style={styles.streakLabel}>Weekly oral care streak</Text>
+                  <Text style={[styles.streakLabel, { color: subTextColor }]}>{t("weeklyStreak", language)}</Text>
                 </View>
               </View>
             </View>
@@ -389,7 +393,7 @@ export default function ProfileScreen() {
                         active ? styles.streakDayActive : styles.streakDayInactive,
                       ]}
                     />
-                    <Text style={styles.dayLabelText}>{dayNames[i]}</Text>
+                    <Text style={[styles.dayLabelText, { color: subTextColor }]}>{dayNames[i]}</Text>
                   </View>
                 );
               })}
@@ -399,7 +403,7 @@ export default function ProfileScreen() {
             <View style={[styles.maintainBtn, styles.maintainBtnActive]}>
               <Feather name="check-circle" size={18} color="#7C3AED" />
               <Text style={styles.maintainBtnTextActive}>
-                Streak Active · Week {weeklyStreak} (Day {daysInCurrentWeek}/7) 🔥
+                {t("streakActive", language)} · {t("week", language)} {weeklyStreak} (Day {daysInCurrentWeek}/7) 🔥
               </Text>
             </View>
           </View>
@@ -407,8 +411,8 @@ export default function ProfileScreen() {
 
         {/* Stats */}
         <View style={styles.statsRow}>
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Latest Risk</Text>
+          <View style={[styles.statCard, { backgroundColor: cardBg, borderColor, borderWidth: isDarkMode ? 1 : 0 }]}>
+            <Text style={[styles.statLabel, { color: subTextColor }]}>{t("latestRisk", language)}</Text>
             <Text style={[styles.statVal, { color: latestScore !== null ? riskColor : "#CBD5E1" }]}>
               {latestScore !== null ? `${latestScore}%` : "—"}
             </Text>
@@ -418,8 +422,8 @@ export default function ProfileScreen() {
               {latestLevel ?? "No data yet"}
             </Text>
           </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Risk change</Text>
+          <View style={[styles.statCard, { backgroundColor: cardBg, borderColor, borderWidth: isDarkMode ? 1 : 0 }]}>
+            <Text style={[styles.statLabel, { color: subTextColor }]}>{t("riskChange", language)}</Text>
             <Text
               style={[
                 styles.statVal,
@@ -450,39 +454,56 @@ export default function ProfileScreen() {
         </View>
 
         {/* Menu */}
-        <View style={styles.menuCard}>
+        <View style={[styles.menuCard, { backgroundColor: cardBg, borderColor, borderWidth: isDarkMode ? 1 : 0 }]}>
           <MenuRow
             icon="user"
-            label="Edit Profile"
+            label={t("editProfile", language)}
             onPress={() => setIsEditing(true)}
+            textColor={textColor}
+            iconColor={isDarkMode ? "#38BDF8" : "#0F172A"}
           />
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: borderColor }]} />
 
           <MenuRow
             icon="globe"
-            label={`Language: ${language}`}
+            label={`${t("language", language)}: ${language}`}
             onPress={() => setIsLanguageModalOpen(true)}
+            textColor={textColor}
+            iconColor={isDarkMode ? "#38BDF8" : "#0F172A"}
           />
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: borderColor }]} />
 
           <MenuRow
             icon={isDarkMode ? "sun" : "moon"}
-            label={isDarkMode ? "Theme: Dark Mode 🌙" : "Theme: Light Mode ☀️"}
+            label={`${t("theme", language)}: ${isDarkMode ? t("darkMode", language) : t("lightMode", language)}`}
             onPress={handleToggleDarkMode}
+            textColor={textColor}
+            iconColor={isDarkMode ? "#F59E0B" : "#0F172A"}
           />
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: borderColor }]} />
 
           <MenuRow
             icon={streakEnabled ? "eye-off" : "zap"}
-            label={streakEnabled ? "Hide Weekly Streak Card" : "Show Weekly Streak Card"}
+            label={streakEnabled ? t("hideStreak", language) : t("showStreak", language)}
             onPress={handleToggleRemoveStreakCard}
+            textColor={textColor}
+            iconColor={isDarkMode ? "#38BDF8" : "#0F172A"}
           />
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: borderColor }]} />
+
+          <MenuRow
+            icon="refresh-cw"
+            label={t("checkUpdates", language)}
+            onPress={handleManualCheckUpdate}
+            textColor={textColor}
+            iconColor={isDarkMode ? "#38BDF8" : "#0F172A"}
+          />
+          <View style={[styles.divider, { backgroundColor: borderColor }]} />
 
           <TouchableOpacity style={styles.menuRow} onPress={handleLogout}>
             <View style={styles.menuRowLeft}>
               <Feather name="log-out" size={16} color="#EF4444" />
-              <Text style={[styles.menuLabel, { color: "#EF4444" }]}>Log out</Text>
+              <Text style={[styles.menuLabel, { color: "#EF4444" }]}>{t("logout", language)}</Text>
             </View>
             <Feather name="chevron-right" size={16} color="#EF4444" />
           </TouchableOpacity>
@@ -491,11 +512,11 @@ export default function ProfileScreen() {
 
       <Modal visible={isEditing} animationType="slide" transparent>
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.modalBg}>
-          <View style={styles.modalCard}>
+          <View style={[styles.modalCard, { backgroundColor: cardBg }]}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Edit Profile</Text>
+              <Text style={[styles.modalTitle, { color: textColor }]}>{t("editProfile", language)}</Text>
               <TouchableOpacity onPress={() => setIsEditing(false)}>
-                <Feather name="x" size={24} color="#64748B" />
+                <Feather name="x" size={24} color={subTextColor} />
               </TouchableOpacity>
             </View>
             <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
@@ -513,35 +534,35 @@ export default function ProfileScreen() {
                     <Text style={{ color: "#fff", fontSize: 10, fontWeight: "bold" }}>Change</Text>
                   </View>
                 </TouchableOpacity>
-                <Text style={{ fontSize: 12, color: "#64748B", marginTop: 6 }}>Tap to change Profile Photo</Text>
+                <Text style={{ fontSize: 12, color: subTextColor, marginTop: 6 }}>Tap to change Profile Photo</Text>
               </View>
 
-              <Text style={styles.inputLabel}>Full Name</Text>
-              <TextInput style={styles.inputField} value={editName} onChangeText={setEditName} placeholder="Enter your full name" />
+              <Text style={[styles.inputLabel, { color: subTextColor }]}>{t("fullName", language)}</Text>
+              <TextInput style={[styles.inputField, { backgroundColor: inputBg, color: textColor, borderColor }]} value={editName} onChangeText={setEditName} placeholder="Enter your full name" placeholderTextColor={subTextColor} />
               
-              <Text style={styles.inputLabel}>Email (Account Email)</Text>
-              <TextInput style={[styles.inputField, { backgroundColor: "#F1F5F9", color: "#64748B" }]} value={user?.email || ""} editable={false} />
+              <Text style={[styles.inputLabel, { color: subTextColor }]}>{t("email", language)}</Text>
+              <TextInput style={[styles.inputField, { backgroundColor: isDarkMode ? "#1E293B" : "#F1F5F9", color: subTextColor, borderColor }]} value={user?.email || ""} editable={false} />
 
-              <Text style={styles.inputLabel}>Phone Number</Text>
-              <TextInput style={styles.inputField} value={editPhone} onChangeText={setEditPhone} placeholder="e.g. +1 234 567 8900" keyboardType="phone-pad" />
+              <Text style={[styles.inputLabel, { color: subTextColor }]}>{t("phone", language)}</Text>
+              <TextInput style={[styles.inputField, { backgroundColor: inputBg, color: textColor, borderColor }]} value={editPhone} onChangeText={setEditPhone} placeholder="e.g. +1 234 567 8900" placeholderTextColor={subTextColor} keyboardType="phone-pad" />
               
-              <Text style={styles.inputLabel}>Age (Years)</Text>
-              <TextInput style={styles.inputField} value={editAge} onChangeText={setEditAge} placeholder="e.g. 24" keyboardType="numeric" />
+              <Text style={[styles.inputLabel, { color: subTextColor }]}>{t("age", language)}</Text>
+              <TextInput style={[styles.inputField, { backgroundColor: inputBg, color: textColor, borderColor }]} value={editAge} onChangeText={setEditAge} placeholder="e.g. 24" placeholderTextColor={subTextColor} keyboardType="numeric" />
 
-              <Text style={styles.inputLabel}>Date of Birth</Text>
-              <TextInput style={styles.inputField} value={editDob} onChangeText={setEditDob} placeholder="DD/MM/YYYY" />
+              <Text style={[styles.inputLabel, { color: subTextColor }]}>{t("dob", language)}</Text>
+              <TextInput style={[styles.inputField, { backgroundColor: inputBg, color: textColor, borderColor }]} value={editDob} onChangeText={setEditDob} placeholder="DD/MM/YYYY" placeholderTextColor={subTextColor} />
               
-              <Text style={styles.inputLabel}>Gender</Text>
-              <TextInput style={styles.inputField} value={editGender} onChangeText={setEditGender} placeholder="Male / Female / Other" />
+              <Text style={[styles.inputLabel, { color: subTextColor }]}>{t("gender", language)}</Text>
+              <TextInput style={[styles.inputField, { backgroundColor: inputBg, color: textColor, borderColor }]} value={editGender} onChangeText={setEditGender} placeholder="Male / Female / Other" placeholderTextColor={subTextColor} />
               
-              <Text style={styles.inputLabel}>New Password (leave blank to keep current)</Text>
-              <TextInput style={styles.inputField} value={editPassword} onChangeText={setEditPassword} placeholder="Enter new password" secureTextEntry />
+              <Text style={[styles.inputLabel, { color: subTextColor }]}>{t("newPassword", language)}</Text>
+              <TextInput style={[styles.inputField, { backgroundColor: inputBg, color: textColor, borderColor }]} value={editPassword} onChangeText={setEditPassword} placeholder="Enter new password" placeholderTextColor={subTextColor} secureTextEntry />
 
-              <Text style={styles.inputLabel}>Confirm New Password</Text>
-              <TextInput style={styles.inputField} value={editConfirmPassword} onChangeText={setEditConfirmPassword} placeholder="Re-enter new password" secureTextEntry />
+              <Text style={[styles.inputLabel, { color: subTextColor }]}>{t("confirmPassword", language)}</Text>
+              <TextInput style={[styles.inputField, { backgroundColor: inputBg, color: textColor, borderColor }]} value={editConfirmPassword} onChangeText={setEditConfirmPassword} placeholder="Re-enter new password" placeholderTextColor={subTextColor} secureTextEntry />
               
               <TouchableOpacity style={styles.saveBtn} onPress={handleSaveProfile} disabled={savingProfile}>
-                {savingProfile ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveBtnText}>Save Changes</Text>}
+                {savingProfile ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveBtnText}>{t("saveChanges", language)}</Text>}
               </TouchableOpacity>
             </ScrollView>
           </View>
@@ -551,11 +572,11 @@ export default function ProfileScreen() {
       {/* Language Selection Modal */}
       <Modal visible={isLanguageModalOpen} animationType="slide" transparent>
         <TouchableOpacity style={styles.modalBg} activeOpacity={1} onPress={() => setIsLanguageModalOpen(false)}>
-          <View style={styles.modalCard}>
+          <View style={[styles.modalCard, { backgroundColor: cardBg }]}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select App Language</Text>
+              <Text style={[styles.modalTitle, { color: textColor }]}>{t("selectLanguage", language)}</Text>
               <TouchableOpacity onPress={() => setIsLanguageModalOpen(false)}>
-                <Feather name="x" size={24} color="#64748B" />
+                <Feather name="x" size={24} color={subTextColor} />
               </TouchableOpacity>
             </View>
             <View style={{ gap: 12, paddingVertical: 10 }}>
@@ -565,17 +586,17 @@ export default function ProfileScreen() {
                   style={{
                     padding: 16,
                     borderRadius: 14,
-                    backgroundColor: language === langItem ? "#E6FFFA" : "#F8FAFC",
+                    backgroundColor: language === langItem ? (isDarkMode ? "#0D9488" : "#E6FFFA") : (isDarkMode ? "#0F172A" : "#F8FAFC"),
                     borderWidth: 1,
-                    borderColor: language === langItem ? "#0D9488" : "#E2E8F0",
+                    borderColor: language === langItem ? "#0D9488" : borderColor,
                     flexDirection: "row",
                     justifyContent: "space-between",
                     alignItems: "center",
                   }}
                   onPress={() => handleSelectLanguage(langItem)}
                 >
-                  <Text style={{ fontSize: 16, fontWeight: "600", color: "#0F172A" }}>{langItem}</Text>
-                  {language === langItem && <Feather name="check" size={20} color="#0D9488" />}
+                  <Text style={{ fontSize: 16, fontWeight: "600", color: language === langItem && isDarkMode ? "#FFFFFF" : textColor }}>{langItem}</Text>
+                  {language === langItem && <Feather name="check" size={20} color={isDarkMode ? "#FFFFFF" : "#0D9488"} />}
                 </TouchableOpacity>
               ))}
             </View>
@@ -587,12 +608,12 @@ export default function ProfileScreen() {
   );
 }
 
-function MenuRow({ icon, label, onPress }: { icon: any; label: string; onPress?: () => void }) {
+function MenuRow({ icon, label, onPress, textColor, iconColor }: { icon: any; label: string; onPress?: () => void; textColor?: string; iconColor?: string }) {
   return (
     <TouchableOpacity style={styles.menuRow} onPress={onPress} activeOpacity={onPress ? 0.7 : 1}>
       <View style={styles.menuRowLeft}>
-        <Feather name={icon} size={16} color="#0F172A" />
-        <Text style={styles.menuLabel}>{label}</Text>
+        <Feather name={icon} size={16} color={iconColor || "#0F172A"} />
+        <Text style={[styles.menuLabel, textColor ? { color: textColor } : null]}>{label}</Text>
       </View>
       <Feather name="chevron-right" size={16} color="#94A3B8" />
     </TouchableOpacity>

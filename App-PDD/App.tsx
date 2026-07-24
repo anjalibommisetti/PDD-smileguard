@@ -161,7 +161,7 @@ export default function App() {
   // Check for OTA Updates on App Start
   useEffect(() => {
     async function checkForUpdates() {
-      if (Platform.OS === 'web') return;
+      if (Platform.OS === 'web' || __DEV__) return;
       try {
         const update = await Updates.checkForUpdateAsync();
         if (update.isAvailable) {
