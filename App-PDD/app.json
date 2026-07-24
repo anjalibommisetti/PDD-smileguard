@@ -11,11 +11,10 @@
       "resizeMode": "contain",
       "backgroundColor": "#0D4B42"
     },
+    "runtimeVersion": "1.0.0",
     "ios": {
       "supportsTablet": true,
-      "runtimeVersion": {
-        "policy": "appVersion"
-      }
+      "runtimeVersion": "1.0.0"
     },
     "android": {
       "package": "com.lakshmi_anjali.smileguard",
@@ -37,7 +36,7 @@
     "updates": {
       "url": "https://u.expo.dev/cf5467bc-3c0a-4576-b51a-8da4c38ca2cd",
       "checkAutomatically": "ON_LOAD",
-      "fallbackToCacheTimeout": 0
+      "fallbackToCacheTimeout": 30000
     }
   }
 }

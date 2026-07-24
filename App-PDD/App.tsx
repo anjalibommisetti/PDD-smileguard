@@ -161,12 +161,19 @@ export default function App() {
   // Check for OTA Updates on App Start
   useEffect(() => {
     async function checkForUpdates() {
-      if (Platform.OS === 'web' || !Updates.isEnabled) return;
+      if (Platform.OS === 'web') return;
       try {
         const update = await Updates.checkForUpdateAsync();
         if (update.isAvailable) {
           await Updates.fetchUpdateAsync();
-          await Updates.reloadAsync();
+          Alert.alert(
+            "App Update Installed 🚀",
+            "A new update has been downloaded. Restart the app now to apply the latest updates?",
+            [
+              { text: "Later", style: "cancel" },
+              { text: "Restart Now", onPress: () => Updates.reloadAsync() },
+            ]
+          );
         }
       } catch (e) {
         console.log("Error checking for updates:", e);
