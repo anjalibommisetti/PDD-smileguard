@@ -44,11 +44,112 @@ export default function ProfileScreen() {
   const [savingProfile, setSavingProfile] = useState(false);
 
 
+  const [streakCount, setStreakCount] = useState<number>(5);
+  const [checkedInToday, setCheckedInToday] = useState<boolean>(false);
+  const [weeklyHistory, setWeeklyHistory] = useState<boolean[]>([true, true, true, true, true, false, false]);
+  const [streakEnabled, setStreakEnabled] = useState<boolean>(true);
+
   useFocusEffect(
     useCallback(() => {
       fetchUser();
+      loadStreak();
     }, []),
   );
+
+  const loadStreak = async () => {
+    try {
+      const todayStr = new Date().toISOString().split("T")[0];
+      const savedCount = await AsyncStorage.getItem("@smileguard_streak_count");
+      const savedDate = await AsyncStorage.getItem("@smileguard_last_checkin_date");
+      const savedHistory = await AsyncStorage.getItem("@smileguard_weekly_history");
+      const savedEnabled = await AsyncStorage.getItem("@smileguard_streak_enabled");
+
+      if (savedEnabled !== null) {
+        setStreakEnabled(savedEnabled === "true");
+      }
+      if (savedCount !== null) {
+        setStreakCount(parseInt(savedCount, 10));
+      }
+      if (savedHistory !== null) {
+        setWeeklyHistory(JSON.parse(savedHistory));
+      }
+      if (savedDate === todayStr) {
+        setCheckedInToday(true);
+      } else {
+        setCheckedInToday(false);
+      }
+    } catch (e) {
+      console.log("Error loading streak:", e);
+    }
+  };
+
+  const handleMaintainStreak = async () => {
+    try {
+      const todayStr = new Date().toISOString().split("T")[0];
+      const todayDayIdx = (new Date().getDay() + 6) % 7; // Mon=0..Sun=6
+
+      if (checkedInToday) {
+        // Toggle off
+        const newCount = Math.max(0, streakCount - 1);
+        const newHistory = [...weeklyHistory];
+        newHistory[todayDayIdx] = false;
+
+        setStreakCount(newCount);
+        setCheckedInToday(false);
+        setWeeklyHistory(newHistory);
+
+        await AsyncStorage.removeItem("@smileguard_last_checkin_date");
+        await AsyncStorage.setItem("@smileguard_streak_count", newCount.toString());
+        await AsyncStorage.setItem("@smileguard_weekly_history", JSON.stringify(newHistory));
+      } else {
+        // Toggle on / maintain streak
+        const newCount = streakCount + 1;
+        const newHistory = [...weeklyHistory];
+        newHistory[todayDayIdx] = true;
+
+        setStreakCount(newCount);
+        setCheckedInToday(true);
+        setWeeklyHistory(newHistory);
+
+        await AsyncStorage.setItem("@smileguard_last_checkin_date", todayStr);
+        await AsyncStorage.setItem("@smileguard_streak_count", newCount.toString());
+        await AsyncStorage.setItem("@smileguard_weekly_history", JSON.stringify(newHistory));
+
+        Alert.alert("🔥 Streak Maintained!", `Great job! You've logged your daily oral care. Streak: ${newCount} days!`);
+      }
+    } catch (e) {
+      Alert.alert("Error", "Could not update streak.");
+    }
+  };
+
+  const handleResetStreak = () => {
+    Alert.alert(
+      "Reset Streak",
+      "Are you sure you want to reset your daily streak back to 0?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Reset",
+          style: "destructive",
+          onPress: async () => {
+            setStreakCount(0);
+            setCheckedInToday(false);
+            const emptyHistory = [false, false, false, false, false, false, false];
+            setWeeklyHistory(emptyHistory);
+            await AsyncStorage.setItem("@smileguard_streak_count", "0");
+            await AsyncStorage.removeItem("@smileguard_last_checkin_date");
+            await AsyncStorage.setItem("@smileguard_weekly_history", JSON.stringify(emptyHistory));
+          },
+        },
+      ]
+    );
+  };
+
+  const handleToggleRemoveStreakCard = async () => {
+    const newState = !streakEnabled;
+    setStreakEnabled(newState);
+    await AsyncStorage.setItem("@smileguard_streak_enabled", newState.toString());
+  };
 
   const fetchUser = async () => {
     try {
@@ -230,27 +331,54 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* Streak */}
-        <View style={styles.streakCard}>
-          <View style={styles.streakTop}>
-            <Feather name="zap" size={28} color="#7C3AED" />
-            <View>
-              <Text style={styles.streakDays}>5 days</Text>
-              <Text style={styles.streakLabel}>Oral care streak</Text>
+        {/* Streak Maintainer */}
+        {streakEnabled && (
+          <View style={styles.streakCard}>
+            <View style={styles.streakTop}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+                <Feather name="zap" size={28} color="#7C3AED" />
+                <View>
+                  <Text style={styles.streakDays}>{streakCount} {streakCount === 1 ? "day" : "days"}</Text>
+                  <Text style={styles.streakLabel}>Oral care streak</Text>
+                </View>
+              </View>
+              <TouchableOpacity onPress={handleResetStreak} style={styles.streakResetBtn}>
+                <Feather name="rotate-ccw" size={14} color="#7C3AED" />
+                <Text style={styles.streakResetText}>Reset</Text>
+              </TouchableOpacity>
             </View>
+
+            {/* Streak pills grid */}
+            <View style={styles.streakGrid}>
+              {weeklyHistory.map((active, i) => {
+                const dayNames = ["M", "T", "W", "T", "F", "S", "S"];
+                return (
+                  <View key={i} style={{ flex: 1, alignItems: "center", gap: 4 }}>
+                    <View
+                      style={[
+                        styles.streakDay,
+                        active ? styles.streakDayActive : styles.streakDayInactive,
+                      ]}
+                    />
+                    <Text style={styles.dayLabelText}>{dayNames[i]}</Text>
+                  </View>
+                );
+              })}
+            </View>
+
+            {/* Interactive Check-in Button */}
+            <TouchableOpacity
+              style={[styles.maintainBtn, checkedInToday && styles.maintainBtnActive]}
+              onPress={handleMaintainStreak}
+              activeOpacity={0.8}
+            >
+              <Feather name={checkedInToday ? "check-circle" : "plus-circle"} size={18} color={checkedInToday ? "#7C3AED" : "#FFF"} />
+              <Text style={[styles.maintainBtnText, checkedInToday && styles.maintainBtnTextActive]}>
+                {checkedInToday ? "Streak Maintained Today! 🔥" : "Log Today's Oral Care 🪥"}
+              </Text>
+            </TouchableOpacity>
           </View>
-          <View style={styles.streakGrid}>
-            {Array.from({ length: 7 }).map((_, i) => (
-              <View
-                key={i}
-                style={[
-                  styles.streakDay,
-                  i < 5 ? styles.streakDayActive : styles.streakDayInactive,
-                ]}
-              />
-            ))}
-          </View>
-        </View>
+        )}
 
         {/* Stats */}
         <View style={styles.statsRow}>
@@ -298,7 +426,6 @@ export default function ProfileScreen() {
 
         {/* Menu */}
         <View style={styles.menuCard}>
-          
           <MenuRow
             icon="user"
             label="Edit Profile"
@@ -306,6 +433,12 @@ export default function ProfileScreen() {
           />
           <View style={styles.divider} />
 
+          <MenuRow
+            icon={streakEnabled ? "eye-off" : "zap"}
+            label={streakEnabled ? "Hide Daily Streak Card" : "Show Daily Streak Card"}
+            onPress={handleToggleRemoveStreakCard}
+          />
+          <View style={styles.divider} />
 
           <TouchableOpacity style={styles.menuRow} onPress={handleLogout}>
             <View style={styles.menuRowLeft}>
@@ -433,7 +566,7 @@ const styles = StyleSheet.create({
   streakTop: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    justifyContent: "space-between",
   },
   streakDays: {
     fontSize: 24,
@@ -444,6 +577,20 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "rgba(124, 58, 237, 0.8)",
   },
+  streakResetBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "rgba(255, 255, 255, 0.5)",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  streakResetText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#7C3AED",
+  },
   streakGrid: {
     marginTop: 16,
     flexDirection: "row",
@@ -451,15 +598,41 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   streakDay: {
-    flex: 1,
+    width: "100%",
     height: 32,
     borderRadius: 8,
+  },
+  dayLabelText: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: "rgba(124, 58, 237, 0.7)",
   },
   streakDayActive: {
     backgroundColor: "#FFFFFF",
   },
   streakDayInactive: {
     backgroundColor: "rgba(255, 255, 255, 0.3)",
+  },
+  maintainBtn: {
+    marginTop: 16,
+    backgroundColor: "#7C3AED",
+    borderRadius: 16,
+    paddingVertical: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  maintainBtnActive: {
+    backgroundColor: "#FFFFFF",
+  },
+  maintainBtnText: {
+    color: "#FFFFFF",
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  maintainBtnTextActive: {
+    color: "#7C3AED",
   },
   statsRow: {
     flexDirection: "row",

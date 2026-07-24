@@ -307,10 +307,10 @@ export default function App() {
 
   return (
     <SafeAreaProvider
-      style={{
-        flex: 1,
-        ...(Platform.OS === "web" ? { width: "100vw", height: "100vh" } : {}),
-      }}
+      style={[
+        { flex: 1 },
+        Platform.OS === "web" && ({ width: "100vw", height: "100vh" } as any),
+      ]}
     >
       <NavigationContainer ref={navigationRef}>
         <Stack.Navigator
