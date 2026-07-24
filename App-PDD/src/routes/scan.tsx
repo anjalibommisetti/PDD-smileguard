@@ -1264,33 +1264,31 @@ export default function ScanScreen() {
                   <Text style={s.recsTitle}>Personalized Recommendations</Text>
                 </View>
                 <View style={s.recsList}>
-                  {result.suggestions.map((sug, i) => {
-                    const isDentist = sug.toLowerCase().includes("dentist") || sug.toLowerCase().includes("visit") || sug.toLowerCase().includes("appointment") || sug.toLowerCase().includes("consultation");
-                    const isUrgent = sug.toLowerCase().includes("immediate") || sug.toLowerCase().includes("urgent");
-                    const recColor = isUrgent ? "#EF4444" : isDentist ? "#157A6E" : "#10B981";
-                    const recBg = isUrgent ? "#FEF2F2" : isDentist ? "#ECFDF5" : "#F0FDF4";
-                    const recIcon = isUrgent ? "alert-circle" : isDentist ? "calendar" : "check-circle";
+                  {result.suggestions
+                    .filter((sug) => {
+                      const lower = sug.toLowerCase();
+                      return !lower.includes("dentist") && !lower.includes("visit") && !lower.includes("appointment") && !lower.includes("consultation") && !lower.includes("book");
+                    })
+                    .map((sug, i) => {
+                      const isUrgent = sug.toLowerCase().includes("immediate") || sug.toLowerCase().includes("urgent") || sug.toLowerCase().includes("high risk");
+                      const recColor = isUrgent ? "#EF4444" : "#10B981";
+                      const recBg = isUrgent ? "#FEF2F2" : "#F0FDF4";
+                      const recIcon = isUrgent ? "alert-circle" : "check-circle";
 
-                    return (
-                      <TouchableOpacity
-                        key={i}
-                        style={[s.recItem, { borderLeftColor: recColor }]}
-                        onPress={() => isDentist && navigation.navigate("Dentists")}
-                        activeOpacity={isDentist ? 0.7 : 1}
-                      >
-                        <View style={[s.recIconWrap, { backgroundColor: recBg }]}>
-                          <Feather name={recIcon} size={15} color={recColor} />
+                      return (
+                        <View
+                          key={i}
+                          style={[s.recItem, { borderLeftColor: recColor }]}
+                        >
+                          <View style={[s.recIconWrap, { backgroundColor: recBg }]}>
+                            <Feather name={recIcon} size={15} color={recColor} />
+                          </View>
+                          <View style={{ flex: 1 }}>
+                            <Text style={s.recText}>{sug}</Text>
+                          </View>
                         </View>
-                        <View style={{ flex: 1 }}>
-                          <Text style={s.recText}>{sug}</Text>
-                          {isDentist && (
-                            <Text style={s.recAction}>Tap to find nearby dentists →</Text>
-                          )}
-                        </View>
-                        {isDentist && <Feather name="chevron-right" size={16} color="#CBD5E1" />}
-                      </TouchableOpacity>
-                    );
-                  })}
+                      );
+                    })}
                 </View>
               </View>
 
@@ -1336,16 +1334,6 @@ export default function ScanScreen() {
                   <Text style={s.downloadText}>Download Report</Text>
                 </TouchableOpacity>
               </View>
-
-              <TouchableOpacity
-                style={s.dentistBtn}
-                onPress={() => navigation.navigate("Dentists")}
-                activeOpacity={0.8}
-              >
-                <Feather name="calendar" size={16} color="#157A6E" />
-                <Text style={s.dentistBtnText}>Book a Dentist Appointment</Text>
-                <Feather name="arrow-right" size={14} color="#157A6E" />
-              </TouchableOpacity>
             </Animated.View>
           )}
         </View>{/* end centeredWrap */}

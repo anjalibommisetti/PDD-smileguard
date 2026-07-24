@@ -196,8 +196,8 @@ export default function ReportScreen() {
       return [
         {
           icon: "alert-triangle",
-          title: "Urgent Dental Consultation",
-          text: "Schedule an in-person dental check-up within 1-2 weeks for evaluation.",
+          title: "Intensive Oral Care Required",
+          text: "High risk level detected. Maintain strict daily oral hygiene and plaque removal.",
         },
         {
           icon: "shield-off",
@@ -238,9 +238,9 @@ export default function ReportScreen() {
           text: "Use an alcohol-free antibacterial mouthwash daily after brushing.",
         },
         {
-          icon: "calendar",
-          title: "Routine Checkup",
-          text: "Schedule your next 6-monthly dental cleaning and preventive exam.",
+          icon: "check-circle",
+          title: "Plaque Control Routine",
+          text: "Maintain proper toothbrushing angles and daily interdental cleaning.",
         },
       ];
     } else {
