@@ -452,8 +452,10 @@ async function callPredictAPI(
     if (data.is_dental_image === false || data.status === "error") {
       const msg = "Invalid image. Please upload a clear image of your teeth or mouth.";
       setImageWarning(msg);
+      setInvalidModalMsg(msg);
+      setShowInvalidModal(true);
       if (Platform.OS === "web" && typeof window !== "undefined") {
-        window.alert(msg);
+        try { window.alert(msg); } catch (e) {}
       } else {
         Alert.alert("Invalid Image ⚠️", msg);
       }
@@ -615,8 +617,9 @@ export default function ScanScreen() {
   const [offlineMode, setOfflineMode] = useState(false);
   const [demoMode, setDemoMode] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
   const [imageWarning, setImageWarning] = useState<string | null>(null);
+  const [showInvalidModal, setShowInvalidModal] = useState(false);
+  const [invalidModalMsg, setInvalidModalMsg] = useState("");
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const progressAnim = useRef(new Animated.Value(0)).current;
@@ -787,8 +790,10 @@ export default function ScanScreen() {
       setAnalyzing(false);
       setResult(null);
       setImageWarning(validation.message);
+      setInvalidModalMsg(validation.message);
+      setShowInvalidModal(true);
       if (Platform.OS === "web" && typeof window !== "undefined") {
-        window.alert(validation.message);
+        try { window.alert(validation.message); } catch (e) {}
       } else {
         Alert.alert("Invalid Image ⚠️", validation.message);
       }
@@ -1576,6 +1581,29 @@ export default function ScanScreen() {
           )}
         </View>{/* end centeredWrap */}
       </ScrollView>
+
+      {/* Invalid Image Custom Modal Popup */}
+      <Modal visible={showInvalidModal} transparent animationType="fade" onRequestClose={() => setShowInvalidModal(false)}>
+        <View style={{ flex: 1, backgroundColor: "rgba(15, 23, 42, 0.6)", justifyContent: "center", alignItems: "center", padding: 24 }}>
+          <View style={{ backgroundColor: "#FFFFFF", borderRadius: 24, padding: 24, width: "100%", maxWidth: 400, alignItems: "center", shadowColor: "#000", shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.2, shadowRadius: 20, elevation: 10 }}>
+            <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: "#FEF2F2", justifyContent: "center", alignItems: "center", marginBottom: 16 }}>
+              <Feather name="alert-triangle" size={32} color="#EF4444" />
+            </View>
+            <Text style={{ fontSize: 20, fontWeight: "800", color: "#0F172A", textAlign: "center", marginBottom: 8 }}>
+              Invalid Image ⚠️
+            </Text>
+            <Text style={{ fontSize: 14, color: "#64748B", textAlign: "center", lineHeight: 22, marginBottom: 24 }}>
+              {invalidModalMsg || "Invalid image. Please upload a clear image of your teeth or mouth."}
+            </Text>
+            <TouchableOpacity
+              style={{ backgroundColor: "#157A6E", width: "100%", paddingVertical: 14, borderRadius: 14, alignItems: "center" }}
+              onPress={() => setShowInvalidModal(false)}
+            >
+              <Text style={{ color: "#FFFFFF", fontWeight: "700", fontSize: 15 }}>Upload Again</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </PhoneShell>
   );
 }
