@@ -641,6 +641,7 @@ export default function ScanScreen() {
   const [imageWarning, setImageWarning] = useState<string | null>(null);
   const [showInvalidModal, setShowInvalidModal] = useState(false);
   const [invalidModalMsg, setInvalidModalMsg] = useState("");
+  const [analyzeStatus, setAnalyzeStatus] = useState("Initializing…");
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const progressAnim = useRef(new Animated.Value(0)).current;
@@ -821,6 +822,18 @@ export default function ScanScreen() {
     return () => stopCamera();
   }, []);
 
+  // ── Wake up Render backend as soon as the Scan page loads ──────────────────
+  useEffect(() => {
+    const warmUp = async () => {
+      try {
+        await fetch(`${BACKEND_URL}/health`, { method: "GET", signal: AbortSignal.timeout(15000) });
+      } catch (_) {
+        // Silently ignore — warm-up is best-effort
+      }
+    };
+    warmUp();
+  }, []);
+
   const runAnalysis = async () => {
     if (!imageUri) return;
     setImageWarning(null);
@@ -845,12 +858,14 @@ export default function ScanScreen() {
     setResult(null);
     setAutoSaved(false);
     setOfflineMode(false);
+    setAnalyzeStatus("Validating image…");
 
     progressAnim.setValue(0);
 
+    // Animate progress to 30% quickly for validation phase
     Animated.timing(progressAnim, {
-      toValue: 1,
-      duration: 1000,
+      toValue: 0.3,
+      duration: 600,
       useNativeDriver: false,
     }).start();
 
@@ -941,7 +956,21 @@ export default function ScanScreen() {
         ],
       };
     } else {
+      setAnalyzeStatus("Sending image to AI server…");
+      // Animate progress to 60% while waiting for server
+      Animated.timing(progressAnim, {
+        toValue: 0.6,
+        duration: 800,
+        useNativeDriver: false,
+      }).start();
       const apiResult = await callPredictAPI(imageUri, imageFile);
+      // Animate to 90% once response arrives
+      Animated.timing(progressAnim, {
+        toValue: 0.9,
+        duration: 400,
+        useNativeDriver: false,
+      }).start();
+      setAnalyzeStatus("Processing results…");
       if (apiResult && (apiResult as any).isInvalidPhoto) {
         scanLineAnim.stopAnimation();
         scanLineAnim.setValue(0);
@@ -981,6 +1010,13 @@ export default function ScanScreen() {
 
     scanLineAnim.stopAnimation();
     scanLineAnim.setValue(0);
+    // Animate to 100% on completion
+    Animated.timing(progressAnim, {
+      toValue: 1,
+      duration: 300,
+      useNativeDriver: false,
+    }).start();
+    setAnalyzeStatus("Complete!");
     setResult(analysis);
     setAnalyzing(false);
 
@@ -1383,7 +1419,7 @@ export default function ScanScreen() {
             <View style={s.progressCard}>
               <View style={s.progressHeader}>
                 <ActivityIndicator color="#157A6E" size="small" />
-                <Text style={s.progressLabel}>Processing dental image…</Text>
+                <Text style={s.progressLabel}>{analyzeStatus}</Text>
               </View>
               <View style={s.progressBg}>
                 <Animated.View style={[s.progressFill, { width: progressWidth as any }]} />
@@ -1396,6 +1432,9 @@ export default function ScanScreen() {
                   </View>
                 ))}
               </View>
+              <Text style={{ fontSize: 11, color: "#94A3B8", textAlign: "center", marginTop: 8 }}>
+                ⏳ AI server may take up to 30 sec to wake up on first run
+              </Text>
             </View>
           )}
 
