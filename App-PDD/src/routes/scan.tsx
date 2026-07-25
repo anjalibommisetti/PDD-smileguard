@@ -402,7 +402,9 @@ async function callPredictAPI(
 
     clearTimeout(timeoutId);
 
-    if (!res.ok) return null;
+    if (!res.ok) {
+      return { isServerError: true, message: "AI Diagnostic server is waking up or restarting. Please try again in a few seconds." } as any;
+    }
     const data = await res.json();
     if (data.is_dental_image === false || data.status === "error") {
       Alert.alert(
@@ -411,7 +413,9 @@ async function callPredictAPI(
       );
       return { isInvalidPhoto: true } as any;
     }
-    if (data.status !== "success") return null;
+    if (data.status !== "success") {
+      return { isServerError: true, message: data.message || "Failed to process photo." } as any;
+    }
 
     let boostedCaries = false;
     let maxConf = 0;
@@ -485,8 +489,8 @@ async function callPredictAPI(
       predictedClass: topClass,
       confidence: Math.round(maxConf),
     };
-  } catch {
-    return null;
+  } catch (err: any) {
+    return { isServerError: true, message: "Could not connect to AI server. Please check your internet connection or try again." } as any;
   }
 }
 
@@ -839,12 +843,23 @@ export default function ScanScreen() {
         setResult(null);
         return;
       }
+      if (apiResult && (apiResult as any).isServerError) {
+        scanLineAnim.stopAnimation();
+        scanLineAnim.setValue(0);
+        setAnalyzing(false);
+        setResult(null);
+        Alert.alert("Server Notice ℹ️", (apiResult as any).message);
+        return;
+      }
       if (apiResult) {
         analysis = apiResult;
         setOfflineMode(false);
       } else {
-        analysis = await runOfflineAnalysis(imageUri, imageSeed);
-        setOfflineMode(true);
+        scanLineAnim.stopAnimation();
+        scanLineAnim.setValue(0);
+        setAnalyzing(false);
+        setResult(null);
+        return;
       }
     }
 
