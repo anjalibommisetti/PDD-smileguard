@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Animated, Platform, Image } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Animated, Platform, Image, Alert } from "react-native";
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigation } from "@react-navigation/native";
 import { PhoneShell } from "../components/PhoneShell";
@@ -562,17 +562,12 @@ export default function ScanScreen() {
   const streamRef = useRef<MediaStream | null>(null);
   const progressAnim = useRef(new Animated.Value(0)).current;
   const scanLineAnim = useRef(new Animated.Value(0)).current;
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(1)).current;
 
   // Fade-in when results appear
   useEffect(() => {
     if (result) {
-      fadeAnim.setValue(0);
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 600,
-        useNativeDriver: false,
-      }).start();
+      fadeAnim.setValue(1);
     }
   }, [result]);
 
@@ -1030,12 +1025,20 @@ export default function ScanScreen() {
           await Print.printAsync({ html: htmlContent });
         }
       } else {
-        const { uri } = await Print.printToFileAsync({ html: htmlContent });
-        await Sharing.shareAsync(uri, { mimeType: "application/pdf", dialogTitle: "Download Scan PDF Report" });
+        try {
+          const { uri } = await Print.printToFileAsync({ html: htmlContent });
+          if (await Sharing.isAvailableAsync()) {
+            await Sharing.shareAsync(uri, { mimeType: "application/pdf", dialogTitle: "Download Scan PDF Report", UTI: "com.adobe.pdf" });
+          } else {
+            await Print.printAsync({ html: htmlContent });
+          }
+        } catch (err) {
+          await Print.printAsync({ html: htmlContent });
+        }
       }
     } catch (error) {
       console.error("PDF export error:", error);
-      alert("Unable to generate PDF report.");
+      Alert.alert("PDF Generation Error", "Unable to generate PDF report on this device.");
     }
   };
 

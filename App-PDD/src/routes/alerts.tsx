@@ -27,10 +27,7 @@ export default function AlertsScreen() {
       const userId = user?.id;
 
       // 1. Calculate dynamic streak
-      let signupIso = user?.created_at;
-      if (!signupIso) {
-        signupIso = await AsyncStorage.getItem("@smileguard_signup_date");
-      }
+      let signupIso = user?.created_at || (await AsyncStorage.getItem("@smileguard_signup_date")) || undefined;
       if (!signupIso) {
         signupIso = new Date().toISOString();
         await AsyncStorage.setItem("@smileguard_signup_date", signupIso);

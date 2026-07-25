@@ -52,13 +52,15 @@ export default function HistoryScreen() {
               const isScan = (it.patient_name || "").startsWith("[Scan]");
               const isInProgress = it.level === "In Progress";
               const rawScore = it.score ?? 0;
-              const finalLvl = rawScore >= 70 ? "Low" : rawScore >= 35 ? "Medium" : "High";
+              const riskLevel = (it.level && it.level !== "In Progress")
+                ? it.level
+                : (rawScore >= 70 ? "High" : rawScore >= 35 ? "Medium" : "Low");
 
               const tone = isInProgress
                 ? "pending"
-                : finalLvl === "High"
+                : riskLevel === "High"
                   ? "alert"
-                  : finalLvl === "Medium"
+                  : riskLevel === "Medium"
                     ? "warning"
                     : "success";
               return {
@@ -78,6 +80,7 @@ export default function HistoryScreen() {
                   hour: "2-digit",
                   minute: "2-digit",
                 }),
+                riskLevel,
                 tone,
               };
             }),
@@ -218,15 +221,18 @@ export default function HistoryScreen() {
                     <Text style={styles.itemDate}>
                       {it.displayDate} · {it.displayTime}
                     </Text>
-                    <View
-                      style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4, flexWrap: "wrap" }}
-                    >
-                      <Text style={[styles.scoreText, { color: c.fg, fontSize: 14, fontWeight: "800" }]}>
-                        {100 - (it.score ?? 0)}/100 Health
-                      </Text>
-                      <View style={[styles.badge, { backgroundColor: c.bg }]}>
-                        <Text style={[styles.badgeText, { color: c.fg }]}>
-                          {!isCompleted ? "⏳ In Progress" : `${it.score}% ${it.level || "Risk"}`}
+                    <View style={{ marginTop: 4, gap: 2 }}>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                        <Text style={{ fontSize: 13, fontWeight: "600", color: "#64748B" }}>Risk Level:</Text>
+                        <Text style={{ fontSize: 13, fontWeight: "800", color: c.fg }}>
+                          {!isCompleted ? "⏳ In Progress" : `${it.riskLevel || it.level || "High"} (${it.score}%)`}
+                        </Text>
+                      </View>
+
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                        <Text style={{ fontSize: 13, fontWeight: "600", color: "#64748B" }}>Health Score:</Text>
+                        <Text style={{ fontSize: 13, fontWeight: "800", color: c.fg }}>
+                          {100 - (it.score ?? 0)}/100
                         </Text>
                       </View>
                     </View>
