@@ -404,6 +404,13 @@ async function callPredictAPI(
 
     if (!res.ok) return null;
     const data = await res.json();
+    if (data.is_dental_image === false || data.status === "error") {
+      Alert.alert(
+        "Invalid Teeth Scan ⚠️",
+        data.message || "No teeth or oral structures were detected in this photo. Please upload a clear, close-up photo of your teeth."
+      );
+      return null;
+    }
     if (data.status !== "success") return null;
 
     let boostedCaries = false;

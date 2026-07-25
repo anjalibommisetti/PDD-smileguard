@@ -3,7 +3,7 @@ from fastapi import FastAPI, File, UploadFile
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import numpy as np
-from app.services.predictor import predict as predictor_predict
+from app.services.predictor import predict as predictor_predict, validate_dental_image
 
 app = FastAPI(title="Dental Image Classifier")
 
@@ -46,6 +46,23 @@ async def root():
 @app.post("/predict")
 async def predict(file: UploadFile = File(...)):
     content = await file.read()
+
+    # Pre-validate if the uploaded photo actually contains dental/teeth structures
+    is_valid = validate_dental_image(content)
+    if not is_valid:
+        return JSONResponse(content={
+            "status": "error",
+            "is_dental_image": False,
+            "error_code": "NON_DENTAL_IMAGE",
+            "message": "No teeth or oral structures detected in this photo. Please upload a clear, close-up photo of your teeth.",
+            "all_classes": [],
+            "detected_only": [],
+            "risk_score": 0,
+            "risk_level": "Invalid Scan",
+            "harmful_percentage": "0%",
+            "precautions": ["Please retake or upload a clear, close-up photo of your teeth for an accurate diagnostic analysis."]
+        })
+
     probs = predictor_predict(content)
 
     # Build per-class results
