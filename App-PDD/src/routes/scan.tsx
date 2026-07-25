@@ -300,7 +300,9 @@ async function runOfflineAnalysis(uri: string, seed: number): Promise<ReturnType
 // ─── Image Validation Step Before Disease Prediction ──────────────────────────
 const validateTeethImage = (uri: string): Promise<{ isValid: boolean; message: string }> => {
   return new Promise((resolve) => {
-    if (Platform.OS !== "web" || typeof window === "undefined") {
+    const invalidMsg = "Invalid image. Please upload a clear image of your teeth or mouth.";
+
+    if (typeof window === "undefined" || !uri) {
       resolve({ isValid: true, message: "" });
       return;
     }
@@ -322,6 +324,8 @@ const validateTeethImage = (uri: string): Promise<{ isValid: boolean; message: s
         const data = imgData.data;
 
         let redCount = 0;
+        let teethCount = 0;
+        let skinCount = 0;
         let brightnessSum = 0;
         const gray = new Uint8Array(64 * 64);
 
@@ -333,14 +337,27 @@ const validateTeethImage = (uri: string): Promise<{ isValid: boolean; message: s
           gray[i / 4] = gVal;
           brightnessSum += gVal;
 
-          if (r > 120 && g < 110 && b < 110 && (r - g > 35)) {
+          // 1. Oral Pink/Red Tissue (Gums / Cavity)
+          if (r > 130 && g < 110 && b < 110 && (r - g > 40)) {
             redCount++;
+          }
+
+          // 2. Tooth Enamel (White / Off-White / Light Yellow teeth structure)
+          if (r > 150 && g > 145 && b > 110 && Math.abs(r - g) < 35 && (r - b > 15)) {
+            teethCount++;
+          }
+
+          // 3. Human Skin Tone (Face / Selfie / Body)
+          if (r > 160 && g > 110 && b > 90 && (r > g) && (g > b) && (r - g < 70)) {
+            skinCount++;
           }
         }
 
         const totalPixels = 64 * 64;
         const avgBrightness = brightnessSum / totalPixels;
         const redRatio = redCount / totalPixels;
+        const teethRatio = teethCount / totalPixels;
+        const skinRatio = skinCount / totalPixels;
 
         let laplacianSum = 0;
         let count = 0;
@@ -359,9 +376,20 @@ const validateTeethImage = (uri: string): Promise<{ isValid: boolean; message: s
         }
         const variance = laplacianSum / count;
 
-        const invalidMsg = "Invalid image. Please upload a clear image of your teeth or mouth.";
+        // Quality check (dark, overexposed, blurry)
+        if (avgBrightness < 45 || avgBrightness > 230 || variance < 45) {
+          resolve({ isValid: false, message: invalidMsg });
+          return;
+        }
 
-        if (avgBrightness < 45 || avgBrightness > 225 || variance < 50 || redRatio < 0.015) {
+        // Face / Selfie check: If face skin tone dominates (>45%) and oral cavity deep red is low (<1.8%)
+        if (skinRatio > 0.45 && redRatio < 0.018) {
+          resolve({ isValid: false, message: invalidMsg });
+          return;
+        }
+
+        // General non-teeth check: Must contain oral red tissue or enamel
+        if (redRatio < 0.012 && teethRatio < 0.015) {
           resolve({ isValid: false, message: invalidMsg });
           return;
         }
@@ -422,10 +450,13 @@ async function callPredictAPI(
     }
     const data = await res.json();
     if (data.is_dental_image === false || data.status === "error") {
-      Alert.alert(
-        "Invalid Image ⚠️",
-        "Invalid image. Please upload a clear image of your teeth or mouth."
-      );
+      const msg = "Invalid image. Please upload a clear image of your teeth or mouth.";
+      setImageWarning(msg);
+      if (Platform.OS === "web" && typeof window !== "undefined") {
+        window.alert(msg);
+      } else {
+        Alert.alert("Invalid Image ⚠️", msg);
+      }
       return { isInvalidPhoto: true } as any;
     }
     if (data.status !== "success") {
@@ -755,7 +786,12 @@ export default function ScanScreen() {
     if (!validation.isValid) {
       setAnalyzing(false);
       setResult(null);
-      Alert.alert("Invalid Image ⚠️", validation.message);
+      setImageWarning(validation.message);
+      if (Platform.OS === "web" && typeof window !== "undefined") {
+        window.alert(validation.message);
+      } else {
+        Alert.alert("Invalid Image ⚠️", validation.message);
+      }
       return;
     }
 
