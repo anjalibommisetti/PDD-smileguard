@@ -297,10 +297,11 @@ async function runOfflineAnalysis(uri: string, seed: number): Promise<ReturnType
 }
 
 // ─── Image Quality / Blur Analyzer ──────────────────────────────────────────
-const checkImageQuality = (uri: string): Promise<{ isUnclear: boolean; reason: string | null; score: number }> => {
+// ─── Image Validation Step Before Disease Prediction ──────────────────────────
+const validateTeethImage = (uri: string): Promise<{ isValid: boolean; message: string }> => {
   return new Promise((resolve) => {
     if (Platform.OS !== "web" || typeof window === "undefined") {
-      resolve({ isUnclear: false, reason: null, score: 100 });
+      resolve({ isValid: true, message: "" });
       return;
     }
     const img = new window.Image();
@@ -311,7 +312,7 @@ const checkImageQuality = (uri: string): Promise<{ isUnclear: boolean; reason: s
         const canvas = window.document.createElement("canvas");
         const ctx = canvas.getContext("2d");
         if (!ctx) {
-          resolve({ isUnclear: false, reason: null, score: 100 });
+          resolve({ isValid: true, message: "" });
           return;
         }
         canvas.width = 64;
@@ -320,14 +321,26 @@ const checkImageQuality = (uri: string): Promise<{ isUnclear: boolean; reason: s
         const imgData = ctx.getImageData(0, 0, 64, 64);
         const data = imgData.data;
 
-        const gray = new Uint8Array(64 * 64);
+        let redCount = 0;
         let brightnessSum = 0;
+        const gray = new Uint8Array(64 * 64);
+
         for (let i = 0; i < data.length; i += 4) {
-          const gVal = Math.round(0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]);
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+          const gVal = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
           gray[i / 4] = gVal;
           brightnessSum += gVal;
+
+          if (r > 120 && g < 110 && b < 110 && (r - g > 35)) {
+            redCount++;
+          }
         }
-        const avgBrightness = brightnessSum / (64 * 64);
+
+        const totalPixels = 64 * 64;
+        const avgBrightness = brightnessSum / totalPixels;
+        const redRatio = redCount / totalPixels;
 
         let laplacianSum = 0;
         let count = 0;
@@ -346,27 +359,20 @@ const checkImageQuality = (uri: string): Promise<{ isUnclear: boolean; reason: s
         }
         const variance = laplacianSum / count;
 
-        let isUnclear = false;
-        let reason: string | null = null;
+        const invalidMsg = "Invalid image. Please upload a clear image of your teeth or mouth.";
 
-        if (variance < 60) {
-          isUnclear = true;
-          reason = "The uploaded photo is blurry or out of focus.";
-        } else if (avgBrightness < 45) {
-          isUnclear = true;
-          reason = "The photo is too dark/shadowy.";
-        } else if (avgBrightness > 225) {
-          isUnclear = true;
-          reason = "The photo is too bright or overexposed.";
+        if (avgBrightness < 45 || avgBrightness > 225 || variance < 50 || redRatio < 0.015) {
+          resolve({ isValid: false, message: invalidMsg });
+          return;
         }
 
-        resolve({ isUnclear, reason, score: variance });
+        resolve({ isValid: true, message: "" });
       } catch (e) {
-        resolve({ isUnclear: false, reason: null, score: 100 });
+        resolve({ isValid: true, message: "" });
       }
     };
     img.onerror = () => {
-      resolve({ isUnclear: false, reason: null, score: 100 });
+      resolve({ isValid: true, message: "" });
     };
   });
 };
@@ -417,8 +423,8 @@ async function callPredictAPI(
     const data = await res.json();
     if (data.is_dental_image === false || data.status === "error") {
       Alert.alert(
-        "Invalid Teeth Scan ⚠️",
-        data.message || "No teeth or oral structures were detected in this photo. Please upload a clear, close-up photo of your teeth."
+        "Invalid Image ⚠️",
+        "Invalid image. Please upload a clear image of your teeth or mouth."
       );
       return { isInvalidPhoto: true } as any;
     }
@@ -744,9 +750,13 @@ export default function ScanScreen() {
     setOfflineMode(false);
     setImageWarning(null);
 
-    const quality = await checkImageQuality(imageUri);
-    if (quality.isUnclear) {
-      setImageWarning(quality.reason);
+    // Mandatory Pre-prediction Image Validation
+    const validation = await validateTeethImage(imageUri);
+    if (!validation.isValid) {
+      setAnalyzing(false);
+      setResult(null);
+      Alert.alert("Invalid Image ⚠️", validation.message);
+      return;
     }
 
     progressAnim.setValue(0);

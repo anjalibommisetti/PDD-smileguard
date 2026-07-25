@@ -61,7 +61,7 @@ def validate_dental_image(image_bytes: bytes) -> bool:
         return True
     except Exception as e:
         print(f"[WARN] Image validation exception: {e}")
-        return True
+        return False
 
 
 def predict(image_bytes: bytes) -> np.ndarray:
