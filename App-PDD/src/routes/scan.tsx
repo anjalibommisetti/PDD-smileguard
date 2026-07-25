@@ -661,44 +661,57 @@ export default function ScanScreen() {
   }, [result]);
 
   const pickImage = async () => {
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: false,
-      aspect: [4, 3],
-      quality: 0.3,
-      base64: true,
-    });
-    if (!result.canceled && result.assets && result.assets.length > 0) {
-      const uri = result.assets[0].uri;
-      const b64 = result.assets[0].base64;
-      if (b64) setImageFile(`data:image/jpeg;base64,${b64}` as any);
-      setImageUri(uri);
-      setImageSeed(result.assets[0].fileSize || Date.now());
-      setResult(null);
-      setAutoSaved(false);
-      setImageWarning(null);
-      setOfflineMode(false);
-      if (Platform.OS === 'web') {
-        const res = await fetch(uri);
-        const blob = await res.blob();
-        setImageFile(new File([blob], 'upload.jpg', { type: blob.type }) as any);
+    try {
+      if (Platform.OS !== "web") {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== "granted") {
+          Alert.alert("Permission Needed", "Permission to access media library is required to upload photos.");
+          return;
+        }
+      }
+      let result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: false,
+        quality: 0.5,
+        base64: true,
+      });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        const uri = asset.uri;
+        const b64 = asset.base64;
+        if (b64) setImageFile(`data:image/jpeg;base64,${b64}` as any);
+        setImageUri(uri);
+        setImageSeed(asset.fileSize || Date.now());
+        setResult(null);
+        setAutoSaved(false);
+        setImageWarning(null);
+        setOfflineMode(false);
+        if (Platform.OS === 'web') {
+          try {
+            const res = await fetch(uri);
+            const blob = await res.blob();
+            setImageFile(new File([blob], 'upload.jpg', { type: blob.type }) as any);
+          } catch (e) {}
+        }
+      }
+    } catch (err: any) {
+      console.warn("Error picking image:", err);
+      if (Platform.OS !== "web") {
+        Alert.alert("Error", "Could not open photo library. Please try again.");
       }
     }
   };
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
-    setIsDragging(true);
   };
 
   const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault();
-    setIsDragging(false);
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
-    setIsDragging(false);
     const file = e.dataTransfer.files?.[0];
     if (!file) return;
     const url = URL.createObjectURL(file);
@@ -712,57 +725,65 @@ export default function ScanScreen() {
   };
 
   const startCamera = async () => {
-    if (Platform.OS === "web") {
-      setShowCamera(true);
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-        streamRef.current = stream;
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
+    try {
+      if (Platform.OS === "web") {
+        setShowCamera(true);
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+          streamRef.current = stream;
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+          }
+        } catch (err) {
+          setShowCamera(false);
+          let result = await ImagePicker.launchCameraAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: false,
+            quality: 0.5,
+            base64: true,
+          });
+          if (!result.canceled && result.assets && result.assets.length > 0) {
+            const asset = result.assets[0];
+            const uri = asset.uri;
+            const b64 = asset.base64;
+            if (b64) setImageFile(`data:image/jpeg;base64,${b64}` as any);
+            setImageUri(uri);
+            setImageSeed(asset.fileSize || Date.now());
+            setResult(null);
+            setAutoSaved(false);
+            setImageWarning(null);
+            setOfflineMode(false);
+          }
         }
-      } catch (err) {
-        setShowCamera(false);
-        // Fallback to picker if no camera
+      } else {
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== "granted") {
+          Alert.alert("Permission Needed", "Camera permission is required to take dental photos.");
+          return;
+        }
         let result = await ImagePicker.launchCameraAsync({
           mediaTypes: ImagePicker.MediaTypeOptions.Images,
-          allowsEditing: true,
-          aspect: [4, 3],
-          quality: 0.3,
+          allowsEditing: false,
+          quality: 0.5,
           base64: true,
         });
         if (!result.canceled && result.assets && result.assets.length > 0) {
-          const uri = result.assets[0].uri;
-          const b64 = result.assets[0].base64;
+          const asset = result.assets[0];
+          const uri = asset.uri;
+          const b64 = asset.base64;
           if (b64) setImageFile(`data:image/jpeg;base64,${b64}` as any);
           setImageUri(uri);
-          setImageSeed(result.assets[0].fileSize || Date.now());
+          setImageSeed(asset.fileSize || Date.now());
           setResult(null);
           setAutoSaved(false);
           setImageWarning(null);
           setOfflineMode(false);
-          const res = await fetch(uri);
-          const blob = await res.blob();
-          setImageFile(new File([blob], 'camera.jpg', { type: blob.type }) as any);
         }
       }
-    } else {
-      let result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [4, 3],
-        quality: 0.3,
-        base64: true,
-      });
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        const uri = result.assets[0].uri;
-        const b64 = result.assets[0].base64;
-        if (b64) setImageFile(`data:image/jpeg;base64,${b64}` as any);
-        setImageUri(uri);
-        setImageSeed(result.assets[0].fileSize || Date.now());
-        setResult(null);
-        setAutoSaved(false);
-        setImageWarning(null);
-        setOfflineMode(false);
+    } catch (err: any) {
+      console.warn("Error opening camera:", err);
+      if (Platform.OS !== "web") {
+        Alert.alert("Error", "Could not open camera. Please try again.");
       }
     }
   };
