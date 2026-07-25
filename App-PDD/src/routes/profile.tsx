@@ -87,12 +87,18 @@ export default function ProfileScreen() {
     }
   };
 
+  const [dailyStreak, setDailyStreak] = useState<number>(2);
+  const [activeDaysOfWeek, setActiveDaysOfWeek] = useState<boolean[]>([false, false, false, false, true, true, false]);
+
   const calculateWeeklyStreak = async (sessionUser?: any) => {
     try {
       const savedEnabled = await AsyncStorage.getItem("@smileguard_streak_enabled");
       if (savedEnabled !== null) {
         setStreakEnabled(savedEnabled === "true");
       }
+
+      const now = new Date();
+      const todayStr = now.toISOString().split("T")[0];
 
       let signupIso = sessionUser?.created_at;
       if (!signupIso) {
@@ -105,17 +111,52 @@ export default function ProfileScreen() {
         await AsyncStorage.setItem("@smileguard_signup_date", sessionUser.created_at);
       }
 
-      const signupDate = new Date(signupIso);
-      const now = new Date();
-      const diffMs = Math.max(0, now.getTime() - signupDate.getTime());
-      const totalDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      const signupDateStr = new Date(signupIso).toISOString().split("T")[0];
 
-      // Calculate weeks elapsed since signup date (Week 1, Week 2, ...)
-      const weeks = Math.floor(totalDays / 7) + 1;
-      const dayOfWeekIndex = (totalDays % 7) + 1; // 1 to 7 days into current week
+      let activeDates: string[] = [];
+      const savedDates = await AsyncStorage.getItem("@smileguard_active_dates");
+      if (savedDates) {
+        try {
+          activeDates = JSON.parse(savedDates);
+        } catch (_) {}
+      }
 
-      setWeeklyStreak(weeks);
-      setDaysInCurrentWeek(dayOfWeekIndex);
+      if (!activeDates.includes(todayStr)) {
+        activeDates.push(todayStr);
+      }
+      if (!activeDates.includes(signupDateStr)) {
+        activeDates.push(signupDateStr);
+      }
+
+      await AsyncStorage.setItem("@smileguard_active_dates", JSON.stringify(activeDates));
+
+      let streakCount = 0;
+      let checkDate = new Date(now);
+      while (true) {
+        const dStr = checkDate.toISOString().split("T")[0];
+        if (activeDates.includes(dStr)) {
+          streakCount++;
+          checkDate.setDate(checkDate.getDate() - 1);
+        } else {
+          break;
+        }
+      }
+
+      const finalStreak = Math.max(streakCount, activeDates.length);
+      setDailyStreak(finalStreak);
+
+      const currentDayIndex = (now.getDay() + 6) % 7; // Monday = 0, ..., Saturday = 5, Sunday = 6
+      const mondayDate = new Date(now);
+      mondayDate.setDate(now.getDate() - currentDayIndex);
+
+      const weekDaysActive = [0, 1, 2, 3, 4, 5, 6].map((i) => {
+        const d = new Date(mondayDate);
+        d.setDate(mondayDate.getDate() + i);
+        const dateString = d.toISOString().split("T")[0];
+        return activeDates.includes(dateString);
+      });
+
+      setActiveDaysOfWeek(weekDaysActive);
     } catch (e) {
       console.log("Error calculating streak:", e);
     }
@@ -391,9 +432,9 @@ export default function ProfileScreen() {
                 </View>
                 <View>
                   <Text style={[styles.streakDays, { color: isDarkMode ? "#F8FAFC" : "#0F172A" }]}>
-                    {weeklyStreak} {weeklyStreak === 1 ? t("week", language) : t("weeks", language)}
+                    {dailyStreak} {dailyStreak === 1 ? "Day" : "Days"}
                   </Text>
-                  <Text style={[styles.streakLabel, { color: subTextColor }]}>{t("weeklyStreak", language)}</Text>
+                  <Text style={[styles.streakLabel, { color: subTextColor }]}>Daily oral care streak</Text>
                 </View>
               </View>
             </View>
@@ -402,7 +443,7 @@ export default function ProfileScreen() {
             <View style={styles.streakGrid}>
               {Array.from({ length: 7 }).map((_, i) => {
                 const dayNames = ["M", "T", "W", "T", "F", "S", "S"];
-                const active = i < daysInCurrentWeek;
+                const active = !!activeDaysOfWeek[i];
                 return (
                   <View key={i} style={{ flex: 1, alignItems: "center", gap: 6 }}>
                     <View
@@ -431,7 +472,7 @@ export default function ProfileScreen() {
             <View style={[styles.maintainBtn, { backgroundColor: isDarkMode ? "#334155" : "#FFFFFF", borderWidth: 1, borderColor: isDarkMode ? "#475569" : "#EDE9FE" }]}>
               <Feather name="check-circle" size={18} color="#7C3AED" />
               <Text style={styles.maintainBtnTextActive}>
-                {t("streakActive", language)} · {t("week", language)} {weeklyStreak} (Day {daysInCurrentWeek}/7) 🔥
+                Streak Active · {dailyStreak} Day Streak 🔥
               </Text>
             </View>
           </View>
@@ -514,6 +555,15 @@ export default function ProfileScreen() {
             icon={streakEnabled ? "eye-off" : "zap"}
             label={streakEnabled ? t("hideStreak", language) : t("showStreak", language)}
             onPress={handleToggleRemoveStreakCard}
+            textColor={textColor}
+            iconColor={isDarkMode ? "#38BDF8" : "#0F172A"}
+          />
+          <View style={[styles.divider, { backgroundColor: borderColor }]} />
+
+          <MenuRow
+            icon="refresh-cw"
+            label="Check for App Updates (OTA)"
+            onPress={handleManualCheckUpdate}
             textColor={textColor}
             iconColor={isDarkMode ? "#38BDF8" : "#0F172A"}
           />

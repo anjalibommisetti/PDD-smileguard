@@ -449,22 +449,24 @@ async function callPredictAPI(
     let score = data.risk_score;
 
     const suggestions: string[] = [];
-    if (level === "High") suggestions.push("Book a dental appointment within 1–2 weeks");
-    else if (level === "Medium") suggestions.push("Schedule a dental check-up soon");
-    else suggestions.push("Great oral health — keep it up!");
+    if (level === "High") suggestions.push("High risk detected — maintain thorough daily oral hygiene");
+    else if (level === "Medium") suggestions.push("Moderate risk — optimize daily brushing and flossing routine");
+    else suggestions.push("Great oral health — keep up your excellent daily routine!");
+    
     const detected = findings.filter((f: any) => f.detected).map((f: any) => f.label);
     if (detected.includes("Dental Caries (Tooth Decay)"))
-      suggestions.push("Cavities detected — prompt filling treatment needed");
+      suggestions.push("Focus on anti-cavity care and enamel protection");
     if (detected.includes("Calculus (Tartar Build-up)"))
-      suggestions.push("Professional scaling required to remove hardened tartar");
+      suggestions.push("Focus on plaque removal along the gumline");
     if (detected.includes("Gingivitis"))
-      suggestions.push("Use antibacterial mouthwash; focus on gum care & flossing");
+      suggestions.push("Use antibacterial mouthwash; focus on gentle gum care & flossing");
     if (detected.includes("Tooth Discoloration"))
-      suggestions.push("Consider whitening treatment; reduce coffee/tea/smoking");
+      suggestions.push("Limit stain-causing drinks (coffee/tea) & use enamel-safe toothpaste");
     if (detected.includes("Periodontal Disease"))
-      suggestions.push("Deep cleaning and periodontal therapy recommended");
+      suggestions.push("Ensure gentle gumline cleaning and antibacterial oral rinse");
     if (detected.includes("Missing Tooth / Tooth Loss"))
-      suggestions.push("Consult dentist about prosthodontics options (implants/bridges)");
+      suggestions.push("Maintain clean space around remaining teeth to prevent shifting");
+    
     suggestions.push("Brush twice daily with fluoride toothpaste (2 min each)");
     suggestions.push("Floss daily to remove interdental plaque buildup");
 
@@ -1010,35 +1012,33 @@ export default function ScanScreen() {
       </html>
     `;
 
-    try {
-      if (Platform.OS === "web" && typeof window !== "undefined") {
-        const printWindow = window.open("", "_blank", "width=850,height=1100");
-        if (printWindow) {
-          printWindow.document.open();
-          printWindow.document.write(htmlContent);
-          printWindow.document.close();
-          printWindow.focus();
-          setTimeout(() => {
-            printWindow.print();
-          }, 300);
-        } else {
-          await Print.printAsync({ html: htmlContent });
-        }
-      } else {
-        try {
-          const { uri } = await Print.printToFileAsync({ html: htmlContent });
-          if (await Sharing.isAvailableAsync()) {
-            await Sharing.shareAsync(uri, { mimeType: "application/pdf", dialogTitle: "Download Scan PDF Report", UTI: "com.adobe.pdf" });
+    let targetId = savedId;
+    if (!targetId) {
+      targetId = await autoSaveAssessment();
+    }
+
+    if (targetId) {
+      navigation.navigate("Report", { id: targetId, score: result.score });
+    } else {
+      // Direct print fallback if save didn't return an ID
+      try {
+        if (Platform.OS === "web" && typeof window !== "undefined") {
+          const printWindow = window.open("", "_blank", "width=850,height=1100");
+          if (printWindow) {
+            printWindow.document.open();
+            printWindow.document.write(htmlContent);
+            printWindow.document.close();
+            printWindow.focus();
+            setTimeout(() => { printWindow.print(); }, 300);
           } else {
             await Print.printAsync({ html: htmlContent });
           }
-        } catch (err) {
+        } else {
           await Print.printAsync({ html: htmlContent });
         }
+      } catch (err) {
+        Alert.alert("Notice", "Report saved to history. You can view and download it from the History tab!");
       }
-    } catch (error) {
-      console.error("PDF export error:", error);
-      Alert.alert("PDF Generation Error", "Unable to generate PDF report on this device.");
     }
   };
 
