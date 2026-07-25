@@ -323,41 +323,55 @@ const validateTeethImage = (uri: string): Promise<{ isValid: boolean; message: s
         const imgData = ctx.getImageData(0, 0, 64, 64);
         const data = imgData.data;
 
-        let redCount = 0;
-        let teethCount = 0;
-        let skinCount = 0;
+        let deepRedCount = 0;       // Genuine Oral Tissue / Gums / Cavity
+        let teethEnamelCount = 0;   // Genuine Tooth Enamel inside mouth
+        let skinToneCount = 0;      // Face / Body / Skin
+        let windowBgCount = 0;      // Bright background window / ceiling light
         let brightnessSum = 0;
         const gray = new Uint8Array(64 * 64);
 
-        for (let i = 0; i < data.length; i += 4) {
-          const r = data[i];
-          const g = data[i + 1];
-          const b = data[i + 2];
-          const gVal = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
-          gray[i / 4] = gVal;
-          brightnessSum += gVal;
+        for (let y = 0; y < 64; y++) {
+          for (let x = 0; x < 64; x++) {
+            const i = (y * 64 + x) * 4;
+            const r = data[i];
+            const g = data[i + 1];
+            const b = data[i + 2];
+            const gVal = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
+            gray[y * 64 + x] = gVal;
+            brightnessSum += gVal;
 
-          // 1. Oral Pink/Red Tissue (Gums / Cavity)
-          if (r > 130 && g < 110 && b < 110 && (r - g > 40)) {
-            redCount++;
-          }
+            // 1. Deep Red Oral Tissue (Gums, Lip cavity, tongue)
+            if (r > 135 && g < 105 && b < 115 && (r - g > 45)) {
+              deepRedCount++;
+            }
 
-          // 2. Tooth Enamel (White / Off-White / Light Yellow teeth structure)
-          if (r > 150 && g > 145 && b > 110 && Math.abs(r - g) < 35 && (r - b > 15)) {
-            teethCount++;
-          }
+            // 2. Window / Overexposed Room Background Light
+            if (r > 215 && g > 215 && b > 210 && Math.max(r, g, b) - Math.min(r, g, b) < 15) {
+              windowBgCount++;
+            }
 
-          // 3. Human Skin Tone (Face / Selfie / Body)
-          if (r > 160 && g > 110 && b > 90 && (r > g) && (g > b) && (r - g < 70)) {
-            skinCount++;
+            // 3. Genuine Tooth Enamel (Ivory / Off-White / Teeth)
+            if (
+              r > 145 && g > 140 && b > 100 &&
+              (r - b > 15) && (g - b > 10) &&
+              !(r > 220 && g > 220 && b > 215)
+            ) {
+              teethEnamelCount++;
+            }
+
+            // 4. Human Skin Tone (Face, neck, arms, body)
+            if (r > 140 && g > 95 && b > 75 && (r > g) && (g > b) && (r - g >= 15) && (r - g <= 75)) {
+              skinToneCount++;
+            }
           }
         }
 
         const totalPixels = 64 * 64;
         const avgBrightness = brightnessSum / totalPixels;
-        const redRatio = redCount / totalPixels;
-        const teethRatio = teethCount / totalPixels;
-        const skinRatio = skinCount / totalPixels;
+        const deepRedRatio = deepRedCount / totalPixels;
+        const enamelRatio = teethEnamelCount / totalPixels;
+        const skinRatio = skinToneCount / totalPixels;
+        const windowBgRatio = windowBgCount / totalPixels;
 
         let laplacianSum = 0;
         let count = 0;
@@ -377,19 +391,32 @@ const validateTeethImage = (uri: string): Promise<{ isValid: boolean; message: s
         const variance = laplacianSum / count;
 
         // Quality check (dark, overexposed, blurry)
-        if (avgBrightness < 45 || avgBrightness > 230 || variance < 45) {
+        if (avgBrightness < 45 || avgBrightness > 230 || variance < 40) {
           resolve({ isValid: false, message: invalidMsg });
           return;
         }
 
-        // Face / Selfie check: If face skin tone dominates (>45%) and oral cavity deep red is low (<1.8%)
-        if (skinRatio > 0.45 && redRatio < 0.018) {
+        // Room / Person / Webcam photo check:
+        // Deep oral red cavity tissue is very low (< 1.5%) because mouth is far/closed
+        if (deepRedRatio < 0.015) {
           resolve({ isValid: false, message: invalidMsg });
           return;
         }
 
-        // General non-teeth check: Must contain oral red tissue or enamel
-        if (redRatio < 0.012 && teethRatio < 0.015) {
+        // Face / Selfie check: If skin tone dominates (>30%) and deep oral tissue is low (<2.2%)
+        if (skinRatio > 0.30 && deepRedRatio < 0.022) {
+          resolve({ isValid: false, message: invalidMsg });
+          return;
+        }
+
+        // Background window light contamination check: If room window light > 15% and oral tissue < 2%
+        if (windowBgRatio > 0.15 && deepRedRatio < 0.02) {
+          resolve({ isValid: false, message: invalidMsg });
+          return;
+        }
+
+        // Tooth Enamel & Oral Cavity combined feature check:
+        if ((deepRedRatio + enamelRatio) < 0.035) {
           resolve({ isValid: false, message: invalidMsg });
           return;
         }
@@ -778,10 +805,6 @@ export default function ScanScreen() {
 
   const runAnalysis = async () => {
     if (!imageUri) return;
-    setAnalyzing(true);
-    setResult(null);
-    setAutoSaved(false);
-    setOfflineMode(false);
     setImageWarning(null);
 
     // Mandatory Pre-prediction Image Validation
@@ -799,6 +822,11 @@ export default function ScanScreen() {
       }
       return;
     }
+
+    setAnalyzing(true);
+    setResult(null);
+    setAutoSaved(false);
+    setOfflineMode(false);
 
     progressAnim.setValue(0);
 

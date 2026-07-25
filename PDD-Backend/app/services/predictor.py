@@ -38,32 +38,39 @@ def validate_dental_image(image_bytes: bytes) -> bool:
         s = hsv_np[:, :, 1] / 255.0 # 0.0..1.0
         v = hsv_np[:, :, 2] / 255.0 # 0.0..1.0
         
-        # 1. Oral Cavity / Gum Deep Red Tissue (Hue < 15 or Hue > 240, S > 0.35)
-        red_mask = ((h < 15) | (h > 240)) & (s > 0.35) & (v > 0.20) & (v < 0.95)
+        # 1. Oral Cavity Deep Red Tissue (Gums, Lip cavity, tongue)
+        red_mask = ((h < 15) | (h > 240)) & (s > 0.38) & (v > 0.20) & (v < 0.95)
         
-        # 2. Tooth Enamel Pixels
-        tooth_mask = (v > 0.50) & (s < 0.30) & (v < 0.98)
+        # 2. Tooth Enamel Pixels (Inside mouth)
+        tooth_mask = (v > 0.55) & (s > 0.08) & (s < 0.32) & (v < 0.95)
 
-        # 3. Face Skin Tone (Hue 10..40, S 0.2..0.6)
+        # 3. Face / Body Skin Tone
         skin_mask = (h >= 10) & (h <= 40) & (s >= 0.20) & (s <= 0.65) & (v >= 0.35)
+
+        # 4. Window / Ceiling Room Background Light
+        window_mask = (v > 0.88) & (s < 0.06)
         
         total_pixels = 224.0 * 224.0
         red_ratio = np.sum(red_mask) / total_pixels
         tooth_ratio = np.sum(tooth_mask) / total_pixels
         skin_ratio = np.sum(skin_mask) / total_pixels
+        window_ratio = np.sum(window_mask) / total_pixels
         
-        # Face / Selfie check: If skin dominates (>45%) and deep oral tissue is low (<1.8%), reject face photo
-        if skin_ratio > 0.45 and red_ratio < 0.018:
-            print(f"[REJECT] Face/Selfie detected instead of oral cavity scan: skin_ratio={skin_ratio:.3f}, red_ratio={red_ratio:.3f}")
+        # Room / Webcam / Person photo check:
+        if red_ratio < 0.015:
+            print(f"[REJECT] Non-dental image / room photo detected: red_ratio={red_ratio:.3f} < 0.015")
             return False
 
-        # General non-dental check
-        if red_ratio < 0.015:
-            print(f"[REJECT] Non-dental image detected: red_ratio={red_ratio:.3f} < 0.015")
+        if skin_ratio > 0.30 and red_ratio < 0.022:
+            print(f"[REJECT] Person/Portrait detected: skin_ratio={skin_ratio:.3f}, red_ratio={red_ratio:.3f}")
+            return False
+
+        if window_ratio > 0.15 and red_ratio < 0.02:
+            print(f"[REJECT] Room window background detected: window_ratio={window_ratio:.3f}, red_ratio={red_ratio:.3f}")
             return False
             
-        if (red_ratio + tooth_ratio) < 0.10:
-            print(f"[REJECT] Insufficient dental features: combined_ratio={(red_ratio+tooth_ratio):.3f} < 0.10")
+        if (red_ratio + tooth_ratio) < 0.035:
+            print(f"[REJECT] Insufficient dental features: combined_ratio={(red_ratio+tooth_ratio):.3f} < 0.035")
             return False
             
         return True
