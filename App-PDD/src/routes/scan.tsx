@@ -409,7 +409,7 @@ async function callPredictAPI(
         "Invalid Teeth Scan ⚠️",
         data.message || "No teeth or oral structures were detected in this photo. Please upload a clear, close-up photo of your teeth."
       );
-      return null;
+      return { isInvalidPhoto: true } as any;
     }
     if (data.status !== "success") return null;
 
@@ -832,6 +832,13 @@ export default function ScanScreen() {
       };
     } else {
       const apiResult = await callPredictAPI(imageUri, imageFile);
+      if (apiResult && (apiResult as any).isInvalidPhoto) {
+        scanLineAnim.stopAnimation();
+        scanLineAnim.setValue(0);
+        setAnalyzing(false);
+        setResult(null);
+        return;
+      }
       if (apiResult) {
         analysis = apiResult;
         setOfflineMode(false);

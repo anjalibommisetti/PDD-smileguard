@@ -24,7 +24,7 @@ def load_model():
     return _model
 
 def validate_dental_image(image_bytes: bytes) -> bool:
-    """Validates if the uploaded image contains dental/teeth structures using color & texture analysis."""
+    """Validates if the uploaded image contains genuine dental/teeth/oral structures."""
     try:
         img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
         img = ImageOps.exif_transpose(img)
@@ -38,19 +38,29 @@ def validate_dental_image(image_bytes: bytes) -> bool:
         s = hsv_np[:, :, 1] / 255.0 # 0.0..1.0
         v = hsv_np[:, :, 2] / 255.0 # 0.0..1.0
         
-        # 1. Enamel/Tooth pixels: High brightness (v > 0.45), low saturation (s < 0.40)
-        tooth_mask = (v > 0.45) & (s < 0.40)
+        # 1. Oral/Gum/Lip Tissue (Red/Pinkish hues)
+        red_mask = ((h < 20) | (h > 235)) & (s > 0.22) & (v > 0.20) & (v < 0.95)
         
-        # 2. Oral/Gum pixels: Reddish hues, moderate brightness & saturation
-        red_mask = ((h < 25) | (h > 230)) & (s > 0.20) & (v > 0.25)
+        # 2. Tooth Enamel Pixels
+        tooth_mask = (v > 0.50) & (s < 0.35) & (v < 0.98)
         
-        dental_pixels = np.sum(tooth_mask | red_mask)
-        total_pixels = 224 * 224
-        ratio = dental_pixels / total_pixels
+        total_pixels = 224.0 * 224.0
+        red_ratio = np.sum(red_mask) / total_pixels
+        tooth_ratio = np.sum(tooth_mask) / total_pixels
         
-        return bool(ratio >= 0.15)
+        # A genuine dental close-up scan ALWAYS contains red/pink oral tissue (gums/lips)
+        # In a portrait/desk/room/background photo, red oral tissue is < 1.5%.
+        if red_ratio < 0.015:
+            print(f"[REJECT] Non-dental image detected: red_ratio={red_ratio:.3f} < 0.015")
+            return False
+            
+        if (red_ratio + tooth_ratio) < 0.12:
+            print(f"[REJECT] Insufficient dental features: combined_ratio={(red_ratio+tooth_ratio):.3f} < 0.12")
+            return False
+            
+        return True
     except Exception as e:
-        print(f"[WARN] Image validation error: {e}")
+        print(f"[WARN] Image validation exception: {e}")
         return True
 
 
