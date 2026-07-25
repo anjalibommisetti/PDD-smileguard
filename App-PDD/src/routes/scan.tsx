@@ -478,15 +478,7 @@ async function callPredictAPI(
     const data = await res.json();
     if (data.is_dental_image === false || data.status === "error") {
       const msg = "Invalid image. Please upload a clear image of your teeth or mouth.";
-      setImageWarning(msg);
-      setInvalidModalMsg(msg);
-      setShowInvalidModal(true);
-      if (Platform.OS === "web" && typeof window !== "undefined") {
-        try { window.alert(msg); } catch (e) {}
-      } else {
-        Alert.alert("Invalid Image ⚠️", msg);
-      }
-      return { isInvalidPhoto: true } as any;
+      return { isInvalidPhoto: true, message: msg } as any;
     }
     if (data.status !== "success") {
       return { isServerError: true, message: data.message || "Failed to process photo." } as any;
@@ -641,6 +633,7 @@ export default function ScanScreen() {
   const [analyzing, setAnalyzing] = useState(false);
   const [result, setResult] = useState<ReturnType<typeof simulateAIAnalysis> | null>(null);
   const [autoSaved, setAutoSaved] = useState(false);
+  const [savedId, setSavedId] = useState<string | null>(null);
   const [offlineMode, setOfflineMode] = useState(false);
   const [demoMode, setDemoMode] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
@@ -954,6 +947,15 @@ export default function ScanScreen() {
         scanLineAnim.setValue(0);
         setAnalyzing(false);
         setResult(null);
+        const invalidMsg = (apiResult as any).message || "Invalid image. Please upload a clear image of your teeth or mouth.";
+        setImageWarning(invalidMsg);
+        setInvalidModalMsg(invalidMsg);
+        setShowInvalidModal(true);
+        if (Platform.OS === "web" && typeof window !== "undefined") {
+          try { window.alert(invalidMsg); } catch (e) {}
+        } else {
+          Alert.alert("Invalid Image ⚠️", invalidMsg);
+        }
         return;
       }
       if (apiResult && (apiResult as any).isServerError) {
@@ -991,17 +993,49 @@ export default function ScanScreen() {
       const userName =
         session?.user?.user_metadata?.full_name || session?.user?.email?.split("@")[0] || "User";
       const thumbUrl = await createBase64Thumbnail(imageUri, imageFile);
-      await supabase.from("assessments").insert({
+      const { data: inserted } = await supabase.from("assessments").insert({
         user_id: userId,
         score: analysis.score,
         level: analysis.level,
         patient_name: `[Scan] ${userName}`,
         answers: { predictedClass: analysis.predictedClass, imageUrl: thumbUrl },
         created_at: new Date().toISOString(),
-      });
+      }).select("id").single();
+      if (inserted?.id) setSavedId(inserted.id);
       setAutoSaved(true);
     } catch (err) {
       console.error("Auto-save error:", err);
+    }
+  };
+
+  // Saves current result to Supabase and returns the record ID
+  const autoSaveAssessment = async (): Promise<string | null> => {
+    if (!result || !imageUri) return null;
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const userId = session?.user?.id ?? null;
+      const userName =
+        session?.user?.user_metadata?.full_name || session?.user?.email?.split("@")[0] || "User";
+      const thumbUrl = await createBase64Thumbnail(imageUri, imageFile);
+      const { data: inserted } = await supabase.from("assessments").insert({
+        user_id: userId,
+        score: result.score,
+        level: result.level,
+        patient_name: `[Scan] ${userName}`,
+        answers: { predictedClass: result.predictedClass, imageUrl: thumbUrl },
+        created_at: new Date().toISOString(),
+      }).select("id").single();
+      if (inserted?.id) {
+        setSavedId(inserted.id);
+        setAutoSaved(true);
+        return inserted.id;
+      }
+      return null;
+    } catch (err) {
+      console.error("autoSaveAssessment error:", err);
+      return null;
     }
   };
 
