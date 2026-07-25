@@ -644,6 +644,7 @@ export default function ScanScreen() {
   const [offlineMode, setOfflineMode] = useState(false);
   const [demoMode, setDemoMode] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const [imageWarning, setImageWarning] = useState<string | null>(null);
   const [showInvalidModal, setShowInvalidModal] = useState(false);
   const [invalidModalMsg, setInvalidModalMsg] = useState("");
@@ -704,14 +705,17 @@ export default function ScanScreen() {
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
+    setIsDragging(true);
   };
 
   const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault();
+    setIsDragging(false);
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
+    setIsDragging(false);
     const file = e.dataTransfer.files?.[0];
     if (!file) return;
     const url = URL.createObjectURL(file);
