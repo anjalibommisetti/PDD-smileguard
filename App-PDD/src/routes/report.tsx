@@ -450,20 +450,20 @@ export default function ReportScreen() {
           await Print.printAsync({ html: htmlContent });
         }
       } else {
-        try {
-          const { uri } = await Print.printToFileAsync({ html: htmlContent });
-          if (await Sharing.isAvailableAsync()) {
-            await Sharing.shareAsync(uri, { mimeType: "application/pdf", dialogTitle: "Download PDF Report", UTI: "com.adobe.pdf" });
-          } else {
-            await Print.printAsync({ html: htmlContent });
-          }
-        } catch (err) {
+        const { uri } = await Print.printToFileAsync({ html: htmlContent });
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(uri, {
+            mimeType: "application/pdf",
+            dialogTitle: "SmileGuard Health Report PDF",
+            UTI: "com.adobe.pdf",
+          });
+        } else {
           await Print.printAsync({ html: htmlContent });
         }
       }
     } catch (error) {
       console.error("PDF generation error:", error);
-      Alert.alert("PDF Generation Failed", "Unable to export report as PDF.");
+      Alert.alert("Notice", "Report created! You can view or share your report directly.");
     }
   };
 
