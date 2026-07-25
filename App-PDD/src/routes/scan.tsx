@@ -189,6 +189,15 @@ async function runOfflineAnalysis(uri: string, seed: number): Promise<ReturnType
         const yellowRatio = yellowCount / total;
         const darkRatio = darkCount / total;
 
+        if (redRatio < 0.015) {
+          Alert.alert(
+            "Invalid Teeth Scan ⚠️",
+            "No teeth or oral structures were detected in this photo. Please upload a clear, close-up photo of your teeth."
+          );
+          resolve({ isInvalidPhoto: true } as any);
+          return;
+        }
+
         let score = 12 + Math.floor(redRatio * 350) + Math.floor(yellowRatio * 250) + Math.floor(darkRatio * 200);
         score = Math.min(96, Math.max(12, score));
 
