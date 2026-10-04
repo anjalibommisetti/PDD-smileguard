@@ -43,6 +43,11 @@ async def root():
     return {"status": "online", "service": "Dental Image Classifier API"}
 
 
+@app.get("/health")
+async def health_check():
+    return {"status": "ok", "service": "Dental Image Classifier API"}
+
+
 @app.post("/predict")
 async def predict(file: UploadFile = File(...)):
     content = await file.read()

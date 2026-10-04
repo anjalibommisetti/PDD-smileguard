@@ -10,7 +10,7 @@ import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
 
 // ─── Backend URL ──────────────────────────────────────────────────────────────
-const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || "https://pdd-smileguard.onrender.com";
+const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || "https://pdd-backend-9ghg.onrender.com";
 
 // ─── Disease metadata ─────────────────────────────────────────────────────────
 const DISEASE_INFO: Record<string, { description: string; urgency: string; icon: string; tip: string }> = {
