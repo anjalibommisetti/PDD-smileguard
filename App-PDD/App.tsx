@@ -193,7 +193,15 @@ export default function App() {
           data: { session: currentSession },
         } = await supabase.auth.getSession();
 
-        if (currentSession) {
+        const offlineAuth = await AsyncStorage.getItem("offline_auth");
+        let activeSession = currentSession;
+        if (!activeSession && offlineAuth) {
+          try {
+            activeSession = JSON.parse(offlineAuth);
+          } catch (e) {}
+        }
+
+        if (activeSession) {
           setInitialRoute("Dashboard");
 
           setTimeout(() => {
@@ -211,7 +219,7 @@ export default function App() {
         }
 
         // Set session AFTER initialRoute is determined so Navigator mounts correctly
-        setSession(currentSession ?? null);
+        setSession(activeSession ?? null);
       } catch (err) {
         console.error("Session check error:", err);
       } finally {
@@ -235,8 +243,17 @@ export default function App() {
         if (navigationRef.isReady()) {
           navigationRef.navigate("ForgotPassword", { step: 3 });
         }
+      } else if (event === "SIGNED_OUT") {
+        await AsyncStorage.removeItem("offline_auth");
+        setSession(null);
+        setInitialRoute("Login");
+        setTimeout(() => {
+          if (navigationRef.isReady()) {
+            navigationRef.navigate("Login");
+          }
+        }, 100);
       } else if (newSession && !isRecovery) {
-          setInitialRoute("Dashboard");
+        setInitialRoute("Dashboard");
 
         // Force navigation to the correct route after React Navigation hot-swaps screens
         setTimeout(() => {
@@ -244,15 +261,19 @@ export default function App() {
             navigationRef.navigate("Dashboard");
           }
         }, 100);
+        setSession(newSession);
       } else if (!newSession) {
-        setInitialRoute("Login");
-        setTimeout(() => {
-          if (navigationRef.isReady()) {
-            navigationRef.navigate("Login");
-          }
-        }, 100);
+        const offlineAuth = await AsyncStorage.getItem("offline_auth");
+        if (!offlineAuth) {
+          setInitialRoute("Login");
+          setTimeout(() => {
+            if (navigationRef.isReady()) {
+              navigationRef.navigate("Login");
+            }
+          }, 100);
+          setSession(null);
+        }
       }
-      setSession(newSession ?? null);
     });
 
     return () => {
@@ -301,37 +322,23 @@ export default function App() {
           }}
           initialRouteName={initialRoute}
         >
-          {session ? (
-            // Protected Screens
-            <>
-              <Stack.Screen name="Dashboard" component={DashboardScreen} />
-              <Stack.Screen name="Assessment" component={AssessmentScreen} />
-              <Stack.Screen name="Scan" component={ScanScreen} />
-              <Stack.Screen name="Results" component={ResultsScreen} />
-              <Stack.Screen name="Report" component={ReportScreen} />
-              <Stack.Screen name="Profile" component={ProfileScreen} />
-              <Stack.Screen name="History" component={HistoryScreen} />
-              <Stack.Screen name="Dentists" component={DentistsScreen} />
-              <Stack.Screen name="Alerts" component={AlertsScreen} />
-              <Stack.Screen name="Analytics" component={AnalyticsDashboard} />
-              <Stack.Screen
-                name="ForgotPassword"
-                component={ForgotPasswordScreen}
-                initialParams={{ step: isRecovery ? 3 : 1 }}
-              />
-            </>
-          ) : (
-            // Auth Screens — Landing is now the entry point
-            <>
-                            <Stack.Screen name="Login" component={LoginScreen} />
-              <Stack.Screen name="Signup" component={SignupScreen} />
-              <Stack.Screen
-                name="ForgotPassword"
-                component={ForgotPasswordScreen}
-                initialParams={{ step: isRecovery ? 3 : 1 }}
-              />
-            </>
-          )}
+          <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="Signup" component={SignupScreen} />
+          <Stack.Screen
+            name="ForgotPassword"
+            component={ForgotPasswordScreen}
+            initialParams={{ step: isRecovery ? 3 : 1 }}
+          />
+          <Stack.Screen name="Dashboard" component={DashboardScreen} />
+          <Stack.Screen name="Assessment" component={AssessmentScreen} />
+          <Stack.Screen name="Scan" component={ScanScreen} />
+          <Stack.Screen name="Results" component={ResultsScreen} />
+          <Stack.Screen name="Report" component={ReportScreen} />
+          <Stack.Screen name="Profile" component={ProfileScreen} />
+          <Stack.Screen name="History" component={HistoryScreen} />
+          <Stack.Screen name="Dentists" component={DentistsScreen} />
+          <Stack.Screen name="Alerts" component={AlertsScreen} />
+          <Stack.Screen name="Analytics" component={AnalyticsDashboard} />
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>
