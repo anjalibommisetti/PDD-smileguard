@@ -15,9 +15,12 @@
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
+    "allowJs": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
     "paths": {
       "@/*": ["./src/*"]
     }
   },
-  "extends": "./node_modules/expo/tsconfig.base.json"
+  "exclude": ["node_modules", "babel.config.js", "metro.config.js", "android", "ios"]
 }

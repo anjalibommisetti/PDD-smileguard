@@ -39,7 +39,11 @@ export default function LoginScreen() {
           msg.includes("Network") ||
           msg.includes("ERR_CONNECTION")
         ) {
-          setErrorMessage("⚠ No internet connection. Please check your network and try again.");
+          if (typeof navigator !== "undefined" && navigator.onLine === false) {
+            setErrorMessage("⚠ No internet connection. Please check your network and try again.");
+          } else {
+            setErrorMessage("⚠ Unable to reach Supabase. Your project may be paused in the Supabase Dashboard. Please restore it and try again.");
+          }
         } else if (msg.includes("Invalid login credentials")) {
           setErrorMessage("Incorrect email or password. Please try again.");
         } else if (msg.includes("Email not confirmed")) {
@@ -53,7 +57,11 @@ export default function LoginScreen() {
         navigation.navigate("Dashboard");
       }
     } catch (err: any) {
-      setErrorMessage("⚠ No internet connection. Please check your network and try again.");
+      if (typeof navigator !== "undefined" && navigator.onLine === false) {
+        setErrorMessage("⚠ No internet connection. Please check your network and try again.");
+      } else {
+        setErrorMessage("⚠ Unable to reach Supabase. Your project may be paused in the Supabase Dashboard. Please restore it and try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -78,7 +86,7 @@ export default function LoginScreen() {
             keyboardType="email-address"
             autoCapitalize="none"
             value={email}
-            onChangeText={(val) => {
+            onChangeText={(val: string) => {
               setEmail(val);
               setErrorMessage("");
             }}
